@@ -1,0 +1,88 @@
+; 結實壓縮專用檔案排序
+;
+; 這裡您可以編輯排序內容，告訴 RAR 您要結實壓縮的排序方式
+;
+; 這檔案可以包含檔名、萬用字元及指定的項目 - $default
+; default 項目定義排序清單中未符合本檔案其他項目的位置
+; 以符號 ';' 做為一行的開始表示這是註解，不會執行
+;
+; 放置本檔，與 RAR.EXE 同目錄
+;
+; 加強壓縮率及速度的要訣:
+;
+; - 要儘可能的將類似資訊的檔案放在一起;
+; - 經常存取的檔案放在最上面。
+;
+file_id.diz
+descript.ion
+read.*
+readme.*
+*.nfo
+*.doc
+*.txt
+*.htm
+*.html
+*.shtml
+*.css
+*.xsl
+*.xml
+*.js
+*.php
+*.lst
+*.log
+*.ini
+*.bat
+*.cmd
+*.h
+*.hpp
+*.c
+*.cpp
+*.java
+*.asm
+*.bas
+*.bak
+*.cue
+*.rtf
+*.hlp
+*.inf
+*.com
+*.exe
+*.dll
+*.obj
+*.lib
+*.sys
+*.drv
+*.bin
+*.bmp
+*.wav
+$default
+*.mp3
+*.mp4
+*.m4a
+*.mov
+*.avi
+*.wmv
+*.wma
+*.gif
+*.tif
+*.png
+*.jpg
+*.chm
+*.pdf
+*.cab
+*.7z
+*.arj
+*.ha
+*.lz
+*.lzh
+*.rar
+*.zip
+*.gz
+*.bz2
+*.xz
+*.jar
+*.fla
+*.flac
+*.ape
+*.bik
+*.mkv
