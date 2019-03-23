@@ -28,8 +28,8 @@
         <file>plugins/english.dic</file>
         <file>plugins/english.exp</file>
         <file>plugins/bcm.exe</file>
-        <file>plugins/pxd40.exe</file>
-        <file>plugins/pxd64.exe</file>
-        <file>plugins/px178.exe</file>
+        <file>plugins/px.exe</file>
+        <file>plugins/pxd.exe</file>
+        <file>plugins/pxd_old.exe</file>
     </qresource>
 </RCC>
