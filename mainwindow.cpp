@@ -2326,8 +2326,7 @@ void MainWindow::on_paq_threads_currentIndexChanged(int index) //多執行緒功
     if(TipMsg && TempMsg2 && index>=0){ //index>=0是無意義的，防止編譯提醒
         QMessageBox *msg = new QMessageBox(QMessageBox::Information,QStringLiteral("訊息"),
                                            QStringLiteral("目前多執行緒功能是不完善的，詳情如下：\n"
-                                                          "1.不會改變壓縮率\n2.佔用更多的系統記憶體\n3.不一定會改善壓縮時間\n\n"
-                                                          "因上述原因，所以暫時不將其納入測試數據")); msg->exec();
+                                                          "1.不會改變壓縮率\n2.佔用更多的系統記憶體\n3.不一定會改善壓縮時間")); msg->exec();
         TempMsg2 = false;
     }
 }
