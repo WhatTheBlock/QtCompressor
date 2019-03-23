@@ -1,4 +1,4 @@
-﻿#ifndef MAINWINDOW_H
+#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include "filedl.h"
@@ -177,9 +177,9 @@ private:
     QString sz = "C:\\Windows\\Temp\\7z.exe";
     QString upx = "C:\\Windows\\Temp\\upx.exe";
     QString uharc = "C:\\Windows\\Temp\\uharc.exe";
-    QString pxd_old = "C:\\Windows\\Temp\\pxd40.exe";
-    QString pxd_new = "C:\\Windows\\Temp\\pxd64.exe";
-    QString px = "C:\\Windows\\Temp\\px178.exe";
+    QString pxd_old = "C:\\Windows\\Temp\\pxd_old.exe";
+    QString pxd_new = "C:\\Windows\\Temp\\pxd.exe";
+    QString px = "C:\\Windows\\Temp\\px.exe";
     QString cmix = "C:\\Windows\\Temp\\cmix.exe";
     QString dic = "C:\\Windows\\Temp\\english.dic";
     QString bcm = "C:\\Windows\\Temp\\bcm.exe";
