@@ -1,10 +1,21 @@
-﻿#include "mainwindow.h"
+#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "dialog1.h"
 #include "filedl.h"
 
+#define VERSION "0.4.3.3"
+#define WINRAR "v5.60.2"
+#define SZIP "v19.0.0"
+#define UHARC "v0.6a"
+#define UPX "v3.9.4"
+#define PXD "v64"
+#define PX "v178"
+#define CMIX "v17"
+#define BCM "v1.30"
+
 static QUrl checkVerUrl("http://www.omgg.ga/ver.txt");
-static QString latestVer, version = "0.4.3.2";
+//static QUrl checkVerUrl("https://cloud.allsync.com/s/A2f8QCD4NB5i5NZ/download");
+static QString latestVer;
 
 MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainWindow)
 {
@@ -339,34 +350,26 @@ void MainWindow::on_pushButton_4_clicked() //輸出檔案
 void MainWindow::on_version_triggered() //查看版本資訊
 {
     QMessageBox *msg = new QMessageBox(QMessageBox::Information,QStringLiteral("關於QtCompressor"),
-                                       QStringLiteral("<font size='6' color='black'><b>主程式版本：</b>%1 (x64)<br>"
+                                       QStringLiteral("<font size='6' color='black'><b>主程式版本：</b>%1<br>"
                                                       "----------------------------------------------------<br>"
-                                                      "<b>開發工具：</b> 1. Qt v5.12.0 (x86)<br>"
+                                                      "<b>外部插件：</b> 1. WinRAR %2<br>"
                                                       "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "2. Visual Studio 2017 (x64)<br>"
+                                                      "2. 7-Zip %3<br>"
                                                       "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "3. Notepad++ v7.5.9 (x64)<br>"
+                                                      "3. UHARC %4 [file.uha]<br>"
                                                       "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "4. MinGW-w64 GCC-8.1.0 (x64)<br>"
-                                                      "----------------------------------------------------<br>"
-                                                      "<b>外部插件：</b> 1. WinRAR v5.60.2 (x64)<br>"
+                                                      "4. UPX %5<br>"
                                                       "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "2. 7-Zip v19.0.0 (x64)<br>"
+                                                      "5. Paq8pxd v40 &#160;[file.0]<br>"
                                                       "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "3. UHARC v0.6a (x86) [filename.uha]<br>"
+                                                      "6. Paq8pxd %6 &#160;[file.1]<br>"
                                                       "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "4. UPX v3.9.4 (x86)<br>"
+                                                      "7. Paq8px %7 &#160;[file.2]<br>"
                                                       "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "5. Paq8pxd v40 (x64) [filename.0]<br>"
+                                                      "8. cmix %8 &#160;&#160;&#160;&#160;&#160;&#160;&#160;[file.cmix]<br>"
                                                       "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "6. Paq8pxd v64 (x64) [filename.1]<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "7. Paq8px v178 (x64) [filename.2]<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "8. cmix v17 (x64) [filename.cmix]<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "9. BCM v1.30 (x86) [filename.bcm]"
-                                                      "</font>").arg(version));
+                                                      "9. BCM %9 &#160;&#160;&#160;&#160;[file.bcm]"
+                                                      "</font>").arg(VERSION).arg(WINRAR).arg(SZIP).arg(UHARC).arg(UPX).arg(PXD).arg(PX).arg(CMIX).arg(BCM));
     //強制調整MessageBox大小
     QSpacerItem* horizontalSpacer = new QSpacerItem(600, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
     QGridLayout* layout = (QGridLayout*)msg->layout();
@@ -380,7 +383,7 @@ void MainWindow::on_checkUpdate_triggered() //檢查更新
     while(latestVer.length() != 7) delay_1ms(); //等待下載完成，且讀取完畢
     QMessageBox *msg = new QMessageBox(QMessageBox::Information,QStringLiteral("訊息"),
                                        QStringLiteral("<font size='6' color='red'><b>最新版本：%1</b></font><br>"
-                                                      "<font size='6' color='black'><b>當前版本：%2</b></font>").arg(latestVer).arg(version));
+                                                      "<font size='6' color='black'><b>當前版本：%2</b></font>").arg(latestVer).arg(VERSION));
     msg->exec();
 }
 //menuBar
@@ -738,9 +741,9 @@ void MainWindow::closeEvent(QCloseEvent *event) { //關閉事件 (刪除plugins)
                "del /f /q C:\\Windows\\Temp\\7z.dll\n"
                "del /f /q C:\\Windows\\Temp\\upx.exe\n"
                "del /f /q C:\\Windows\\Temp\\uharc.exe\n"
-               "del /f /q C:\\Windows\\Temp\\pxd40.exe\n"
-               "del /f /q C:\\Windows\\Temp\\pxd64.exe\n"
-               "del /f /q C:\\Windows\\Temp\\px178.exe\n"
+               "del /f /q C:\\Windows\\Temp\\pxd_old.exe\n"
+               "del /f /q C:\\Windows\\Temp\\pxd.exe\n"
+               "del /f /q C:\\Windows\\Temp\\px.exe\n"
                "del /f /q C:\\Windows\\Temp\\cmix.exe\n"
                "del /f /q C:\\Windows\\Temp\\bcm.exe\n"
                "del /f /q C:\\Windows\\Temp\\english.exp\n"
@@ -2331,16 +2334,5 @@ void MainWindow::on_paq_threads_currentIndexChanged(int index) //多執行緒功
 //設定提醒通知
 
 //------------------------------實驗工具---------------------------//
-
-
-
-
-
-
-
-
-
-
-
 
 
