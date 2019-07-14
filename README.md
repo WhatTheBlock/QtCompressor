@@ -22,8 +22,7 @@
 
 ## 已知問題
 
-1. 7-Zip、UPX功能尚未編寫
-2. cmix暫時無法使用
+7-Zip、UPX功能尚未編寫
 
 ## Changelog
 
