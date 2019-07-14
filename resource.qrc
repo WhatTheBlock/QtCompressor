@@ -3,11 +3,8 @@
         <file>plugins/rar.exe</file>
         <file>plugins/RarFiles.lst</file>
         <file>plugins/rarreg.key</file>
-        <file>plugins/winrar.exe</file>
         <file>plugins/7z.exe</file>
         <file>plugins/upx.exe</file>
-        <file>plugins/uharc.exe</file>
-        <file>plugins/7z.dll</file>
         <file>images/comp.png</file>
         <file>images/decomp.png</file>
         <file>images/export.png</file>
@@ -21,7 +18,6 @@
         <file>images/write.png</file>
         <file>images/version.png</file>
         <file>images/one-click.png</file>
-        <file>images/rank.png</file>
         <file>images/fire.png</file>
         <file>images/compress.ico</file>
         <file>plugins/cmix.exe</file>
@@ -30,6 +26,7 @@
         <file>plugins/bcm.exe</file>
         <file>plugins/px.exe</file>
         <file>plugins/pxd.exe</file>
-        <file>plugins/pxd_old.exe</file>
+        <file>plugins/english.emb</file>
+        <file>plugins/kkanzi.exe</file>
     </qresource>
 </RCC>

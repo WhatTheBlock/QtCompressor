@@ -1,17 +1,16 @@
-#include "mainwindow.h"
+﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "dialog1.h"
 #include "filedl.h"
 
-#define VERSION "0.4.3.3"
-#define WINRAR "v5.60.2"
+#define VERSION "0.4.4.0"
+#define WINRAR "v5.71.0"
 #define SZIP "v19.0.0"
-#define UHARC "v0.6a"
-#define UPX "v3.9.4"
+#define UPX "v3.9.5"
 #define PXD "v64"
-#define PX "v178"
+#define PX "v179fix5"
 #define CMIX "v17"
 #define BCM "v1.30"
+#define KANZI "v1.6 build 20190714g"
 
 static QUrl checkVerUrl("http://www.omgg.ga/ver.txt");
 //static QUrl checkVerUrl("https://cloud.allsync.com/s/A2f8QCD4NB5i5NZ/download");
@@ -31,20 +30,17 @@ MainWindow::MainWindow(QWidget *parent) :  QMainWindow(parent), ui(new Ui::MainW
     QFile::copy(":/plugins/rar.exe", "C:/Windows/Temp/rar.exe");
     QFile::copy(":/plugins/RarFiles.lst", "C:/Windows/Temp/RarFiles.lst");
     QFile::copy(":/plugins/rarreg.key", "C:/Windows/Temp/rarreg.key");
-    QFile::copy(":/plugins/winrar.exe", "C:/Windows/Temp/winrar.exe");
     QFile::copy(":/plugins/7z.exe", "C:/Windows/Temp/7z.exe");
-    QFile::copy(":/plugins/7z.dll", "C:/Windows/Temp/7z.dll");
     QFile::copy(":/plugins/upx.exe", "C:/Windows/Temp/upx.exe");
-    QFile::copy(":/plugins/uharc.exe", "C:/Windows/Temp/uharc.exe");
-    QFile::copy(":/plugins/pxd40.exe", "C:/Windows/Temp/pxd40.exe");
-    QFile::copy(":/plugins/pxd64.exe", "C:/Windows/Temp/pxd64.exe");
-    QFile::copy(":/plugins/px178.exe", "C:/Windows/Temp/px178.exe");
+    QFile::copy(":/plugins/pxd.exe", "C:/Windows/Temp/pxd.exe");
+    QFile::copy(":/plugins/px.exe", "C:/Windows/Temp/px.exe");
     QFile::copy(":/plugins/cmix.exe", "C:/Windows/Temp/cmix.exe");
     QFile::copy(":/plugins/english.dic", "C:/Windows/Temp/english.dic");
     QFile::copy(":/plugins/english.exp", "C:/Windows/Temp/english.exp");
+    QFile::copy(":/plugins/english.emb", "C:/Windows/Temp/english.emb");
     QFile::copy(":/plugins/bcm.exe", "C:/Windows/Temp/bcm.exe");
+    QFile::copy(":/plugins/kkazni.exe", "C:/Windows/Temp/kkazni.exe");
 }
-
 MainWindow::~MainWindow(){delete ui;}
 
 //檔案下載 (檢查更新)
@@ -102,15 +98,14 @@ void MainWindow::runCmdForCompOrDecomp(QString cmd){ //可輸出執行過程
     findString = false;
     cmd += "\n\r";
     encodedString = codec->fromUnicode(cmd);
-    useRAR = use7Z = useUHA = useUPX = usePAQ = false;
+    useRAR = use7Z = useUPX = usePAQ = false;
     switch (encodedString.data()[17]) {
-    case 'a':
-    case 'i': useRAR=true; break;
+    case 'a':useRAR=true; break;
     case 'z': use7Z=true; break;
-    case 'h': useUHA=true; break;
     case 'p': useUPX=true; break;
-    case 'c':
-    case 'm':
+    case 'c': //bcm
+    case 'k': //kkanzi = kanzi
+    case 'm': //cmix
     case 'x': usePAQ=true; break;
     }
     process = new QProcess(this);
@@ -124,13 +119,23 @@ void MainWindow::runCmdForCompOrDecomp(QString cmd){ //可輸出執行過程
 void MainWindow::RealTimeReadOut(){ //輸出執行過程
     QProcess *p = dynamic_cast<QProcess *>( sender() );
     if (p) {
-        if(useRAR) ui->rar_cmdOutput->append(QString::fromLocal8Bit(p->readAllStandardOutput()));
-        else if(use7Z) ui->sz_cmdOutput->append(QString::fromLocal8Bit(p->readAllStandardOutput()));
+        if(useRAR) {
+            ui->rar_cmdOutput->append(QString::fromLocal8Bit(p->readAllStandardOutput()));
+            ui->rar_cmdOutput->append(QString::fromLocal8Bit(p->readAllStandardError()));
+        }
+        else if(use7Z) {
+            ui->sz_cmdOutput->append(QString::fromLocal8Bit(p->readAllStandardOutput()));
+            ui->sz_cmdOutput->append(QString::fromLocal8Bit(p->readAllStandardError()));
+        }
         else if(usePAQ) {
-            if(ui->tabWidget->currentIndex() == 4 && ui->tab_paq->currentIndex() == 1){
+            if(ui->tabWidget->currentIndex() == 3 && ui->tab_paq->currentIndex() == 1){
                 ui->paq_viewFileList->append(QString::fromLocal8Bit(p->readAllStandardOutput()));
+                ui->paq_viewFileList->append(QString::fromLocal8Bit(p->readAllStandardError()));
             }
-            else ui->paq_cmdOutput->append(QString::fromLocal8Bit(p->readAllStandardOutput()));
+            else {
+                ui->paq_cmdOutput->append(QString::fromLocal8Bit(p->readAllStandardOutput()));
+                ui->paq_cmdOutput->append(QString::fromLocal8Bit(p->readAllStandardError()));
+            }
         }
     }
 }
@@ -149,7 +154,7 @@ QString getFileExt(QString path){ //取得副檔名
         ++cnt;
         if(path[i] == ".") {return path.right(path.length()-i);}
     }
-    return NULL; //無意義
+    return "";
 }
 QString getFileName(QString path){ //取得檔名+副檔名
     int cnt=0;
@@ -157,7 +162,7 @@ QString getFileName(QString path){ //取得檔名+副檔名
         ++cnt;
         if(path[i] == "\\") {return path.right(path.length()-i-1);}
     }
-    return NULL; //無意義
+    return "";
 }
 
 qint64 Getfilesize(QString path){ //取得檔案大小
@@ -207,15 +212,10 @@ bool isArchive_WinRAR(QString path){
              || format.right(4) == ".dot" || format.right(4) == ".ppt" || format.right(4) == ".pps" || format.right(4) == ".xls"
              || format.right(4) == ".pot" || format.right(4) == ".doc" || format.right(4) == ".xlt" || format.right(5) == ".pptx"
              || format.right(4) == ".iso" || format.right(4) == ".tar" || format.right(4) == ".bz2" || format.right(4) == ".apk"
-             || format.right(4) == ".lzh" || format.right(4) == ".uue" || format.right(4) == ".ace" || format.right(4) == ".jar"
+             || format.right(4) == ".lzh" || format.right(4) == ".uue" || format.right(4) == ".jar"
              || format.right(4) == ".arj" || format.right(4) == ".001" || format.right(5) == ".zipx" || format.right(5) == ".ppsx"
              || format.right(5) == ".xltx" || format.right(5) == ".docx" || format.right(5) == ".dotx" || format.right(5) == ".xlsx"
              || format.right(5) == ".vsix" || format.right(4) == ".qdz") return true;
-    else return false;
-}
-bool isArchive_UHARC(QString path){
-    path = path.toLower();
-    if(path.right(4) == ".uha") return true;
     else return false;
 }
 bool isArchive_UPX(QString path){
@@ -227,11 +227,6 @@ bool isArchive_UPX(QString path){
              || format.right(4) == ".cpl" || format.right(4) == ".drv" || format.right(4) == ".efi" || format.right(4) == ".mui" || format.right(4) == ".mod"
              || format.right(4) == ".scr" || format.right(4) == ".tsp" || format.right(4) == ".axf" || format.right(4) == ".bin"
              || format.right(5) == ".puff" || format.right(6) == ".dylib" || format.right(6) == ".shell" || format.right(7) == ".bundle") return true;
-    else return false;
-}
-bool isArchive_PAQ(QString path){
-    path = path.toLower();
-    if(path.right(2) == ".0") return true;
     else return false;
 }
 bool isArchive_pxd2(QString path){
@@ -254,19 +249,14 @@ bool isArchive_dic_cmix(QString path){
     if(path.right(9) == ".dic.cmix") return true;
     else return false;
 }
-bool isArchive_pre_dic_cmix(QString path){
-    path = path.toLower();
-    if(path.right(13) == ".pre.dic.cmix") return true;
-    else return false;
-}
 bool isArchive_BCM(QString path){
     path = path.toLower();
     if(path.right(4) == ".bcm") return true;
     else return false;
 }
-bool isArchive_pre_BCM(QString path){
+bool isArchive_Kanzi(QString path){
     path = path.toLower();
-    if(path.right(8) == ".pre.bcm") return true;
+    if(path.right(4) == ".knz") return true;
     else return false;
 }
 bool isSplit(QString path){
@@ -278,11 +268,9 @@ bool isSplit(QString path){
 
 //拖放設定
 void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
-    __super::dragEnterEvent(event);
     if(event->mimeData()->hasUrls()) event->acceptProposedAction();
 }
 void MainWindow::dropEvent(QDropEvent *event) {
-    __super::dropEvent(event);
     if (event->mimeData()->hasUrls()){
         QList<QUrl> urls = event->mimeData()->urls();
         if(urls.isEmpty()) return;
@@ -295,13 +283,12 @@ void MainWindow::dropEvent(QDropEvent *event) {
 
 void MainWindow::on_pushButton_clicked() //開啟檔案
 {
-    if(ui->tabWidget->currentIndex() == 3){ //限制UPX開啟格式
+    if(ui->tabWidget->currentIndex() == 2){ //限制UPX開啟格式
         inpath = QFileDialog::getOpenFileName(this, QStringLiteral("選擇檔案"), "/", "Executable File (*.exe);;Dynamic-link library (*.dll)"
                                                                                  ";;Executable File (*.com);;Device Drivers (*.sys)");
     }
-    else if(ui->tabWidget->currentIndex() == 4 && ui->tab_paq->currentIndex() == 1){ //限制實驗性質解壓開啟格式
-        inpath = QFileDialog::getOpenFileName(this, QStringLiteral("選擇檔案"), "/",
-                                              "paq8pxd_old (*.0);;paq8pxd_new (*.1);;paq8px (*.2);;cmix (*.cmix);;bcm (*.bcm)");
+    else if(ui->tabWidget->currentIndex() == 3 && ui->tab_paq->currentIndex() == 1){ //限制其他工具解壓開啟格式
+        inpath = QFileDialog::getOpenFileName(this, QStringLiteral("選擇檔案"), "/", "pxd (*.1);;px (*.2);;cmix (*.cmix);;bcm (*.bcm);;kanzi (*.knz)");
     }
     else inpath = QFileDialog::getOpenFileName(this, QStringLiteral("選擇檔案"), "/", "All Files (*.*)");
     ui->lineEdit->setText(inpath.replace("/","\\"));
@@ -309,39 +296,31 @@ void MainWindow::on_pushButton_clicked() //開啟檔案
 }
 void MainWindow::on_pushButton_4_clicked() //輸出檔案
 {
-    if(ui->tabWidget->currentIndex() == 0){ //WinRAR
+    switch (ui->tabWidget->currentIndex()) {
+    case 0: //WinRAR
         switch (ui->tab_winrar->currentIndex()) {
-        case 0: outpath = QFileDialog::getSaveFileName(this, QStringLiteral("建立壓縮檔"), "/", QStringLiteral("RAR/RAR5 (*.rar);;Zip (*.zip)")); break;
+        case 0: outpath = QFileDialog::getSaveFileName(this, QStringLiteral("建立壓縮檔"), "/", QStringLiteral("RAR/RAR5 (*.rar)")); break;
         case 1: outpath = QFileDialog::getExistingDirectory(this, QStringLiteral("選擇輸出位置"), "/"); break;
-        }
-    }
-    else if(ui->tabWidget->currentIndex() == 1){ //7-Zip
+        } break;
+    case 1: //7-Zip
         switch (ui->tab_7z->currentIndex()) {
         case 0: outpath = QFileDialog::getSaveFileName(this, QStringLiteral("建立壓縮檔"), "/",
-                                                           QStringLiteral("7-Zip (*.7z);;bzip2 (*.bz2);;gzip (*.gz)"
+                                                           QStringLiteral("7-Zip (*.7z);;Bzip2 (*.bz2);;Gzip (*.gz)"
                                                                           ";;GNU tar (*.tar);;Windows 映像格式 (*.wim);;XZ (*.xz);;Zip (*.zip)")); break;
         case 1: outpath = QFileDialog::getExistingDirectory(this, QStringLiteral("選擇輸出位置"), "/"); break;
-        }
-    }
-    else if(ui->tabWidget->currentIndex() == 2){ //UHARC
-        switch (ui->tab_uharc->currentIndex()) {
-        case 0: outpath = QFileDialog::getSaveFileName(this, QStringLiteral("建立壓縮檔"), "/", QStringLiteral("UHARC (*.uha)")); break;
-        case 1: outpath = QFileDialog::getExistingDirectory(this, QStringLiteral("選擇輸出位置"), "/"); break;
-        }
-    }
-    else if(ui->tabWidget->currentIndex() == 3){ //UPX
+        } break;
+    case 2: //UPX
         switch (ui->tab_upx->currentIndex()) {
-        case 0: outpath = QFileDialog::getSaveFileName(this, QStringLiteral("檔案加殼壓縮"), "/",
+        case 0: outpath = QFileDialog::getSaveFileName(this, QStringLiteral("執行檔加殼壓縮"), "/",
                                                            QStringLiteral("Executable File (*.exe);;Dynamic-link library (*.dll)"
                                                                           ";;Executable File (*.com);;Device Drivers (*.sys)")); break;
         case 1: outpath = QFileDialog::getExistingDirectory(this, QStringLiteral("選擇輸出位置"), "/"); break;
-        }
-    }
-    else if(ui->tabWidget->currentIndex() == 4){ //實驗性質
+        } break;
+    case 3: //其他
         switch (ui->tab_paq->currentIndex()) {
-        case 0: outpath = QFileDialog::getSaveFileName(this, QStringLiteral("建立壓縮檔"), "/", QStringLiteral("experiment (*.0)")); break;
+        case 0: outpath = QFileDialog::getSaveFileName(this, QStringLiteral("建立壓縮檔"), "/", QStringLiteral("pxd (*.1);;px (*.2);;cmix (*.cmix);;bcm (*.bcm);;kanzi (*.knz)")); break;
         case 1: outpath = QFileDialog::getExistingDirectory(this, QStringLiteral("選擇輸出位置"), "/"); break;
-        }
+        } break;
     }
     ui->lineEdit_2->setText(outpath.replace("/","\\"));
 }
@@ -349,27 +328,25 @@ void MainWindow::on_pushButton_4_clicked() //輸出檔案
 //menuBar
 void MainWindow::on_version_triggered() //查看版本資訊
 {
-    QMessageBox *msg = new QMessageBox(QMessageBox::Information,QStringLiteral("關於QtCompressor"),
-                                       QStringLiteral("<font size='6' color='black'><b>主程式版本：</b>%1<br>"
+    QMessageBox *msg = new QMessageBox(QMessageBox::Information,QStringLiteral("About QtCompressor"),
+                                       QStringLiteral("<font size='6' color='black'><b>QtCompressor Version：</b>%1<br>"
                                                       "----------------------------------------------------<br>"
-                                                      "<b>外部插件：</b> 1. WinRAR %2<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
+                                                      "<b>Plugins：</b> 1. WinRAR %2<br>"
+                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
                                                       "2. 7-Zip %3<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "3. UHARC %4 [file.uha]<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "4. UPX %5<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "5. Paq8pxd v40 &#160;[file.0]<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "6. Paq8pxd %6 &#160;[file.1]<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "7. Paq8px %7 &#160;[file.2]<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "8. cmix %8 &#160;&#160;&#160;&#160;&#160;&#160;&#160;[file.cmix]<br>"
-                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
-                                                      "9. BCM %9 &#160;&#160;&#160;&#160;[file.bcm]"
-                                                      "</font>").arg(VERSION).arg(WINRAR).arg(SZIP).arg(UHARC).arg(UPX).arg(PXD).arg(PX).arg(CMIX).arg(BCM));
+                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
+                                                      "3. UPX %4<br>"
+                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
+                                                      "4. Paq8pxd %5<br>"
+                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
+                                                      "5. Paq8px %6<br>"
+                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
+                                                      "6. cmix %7<br>"
+                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
+                                                      "7. BCM %8<br>"
+                                                      "&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"
+                                                      "8. Kanzi %9"
+                                                      "</font>").arg(VERSION).arg(WINRAR).arg(SZIP).arg(UPX).arg(PXD).arg(PX).arg(CMIX).arg(BCM).arg(KANZI));
     //強制調整MessageBox大小
     QSpacerItem* horizontalSpacer = new QSpacerItem(600, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
     QGridLayout* layout = (QGridLayout*)msg->layout();
@@ -406,12 +383,6 @@ void MainWindow::loadFile() //下載檔案，並讀取版本號
     rfile.close();
 }
 
-void MainWindow::on_pushButton_5_clicked() //開啟dialog1
-{
-    Dialog1 *comptest = new Dialog1(this);
-    comptest->show();
-}
-
 void MainWindow::on_no_TipMsg_stateChanged(int state) //提醒開關
 {
     if(state==0) TipMsg = true;
@@ -443,13 +414,6 @@ void MainWindow::on_tab_7z_currentChanged(int index) //切換7-Zip內的tab時
         ui->lineEdit_2->setText(QStringLiteral("選擇輸出位置"));
     }
 }
-void MainWindow::on_tab_uharc_currentChanged(int index) //切換UHARC內的tab時
-{
-    if(index == 0 || index == 1){
-        ui->lineEdit->setText(QStringLiteral("可直接拖曳檔案或資料夾至此"));
-        ui->lineEdit_2->setText(QStringLiteral("選擇輸出位置"));
-    }
-}
 void MainWindow::on_tab_paq_currentChanged(int index) //切換測試區內的tab時
 {
     if(index == 0 || index == 1){
@@ -472,7 +436,7 @@ void MainWindow::on_lineEdit_textChanged(const QString &path) //當開啟檔案�
             }
             else {
                 if(isArchive_7Zip(path)){
-                    int delUseless = NULL;
+                    int delUseless = 0;
                     //輸出檔案清單txt
                     QString cmd = sz + " l \"" + path + "\" -bso1 >" + " C:\\Windows\\Temp\\list.txt";
                     runCmd(cmd);
@@ -590,7 +554,7 @@ void MainWindow::on_lineEdit_textChanged(const QString &path) //當開啟檔案�
                 msg->exec();
             }
             else {
-                int delUseless = NULL;
+                int delUseless = 0;
                 //輸出檔案清單txt
                 QString cmd = sz + " l \"" + path + "\" -bso1 >" + " C:\\Windows\\Temp\\list.txt";
                 runCmd(cmd);
@@ -699,14 +663,7 @@ void MainWindow::on_lineEdit_textChanged(const QString &path) //當開啟檔案�
                                                                                                                 "1. 檔案損毀\n2. 非支援的檔案標頭\n3. 該檔案正在使用中"));
             }
         }
-        else if(ui->tabWidget->currentIndex() == 2 && ui->tab_uharc->currentIndex() == 1){ //限制UHARC解壓開啟格式
-            ok = isArchive_UHARC(path);
-            if(!ok){
-                QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"), QStringLiteral("UHARC只支援 *.uha 的壓縮檔格式"));
-                msg->exec();
-            }
-        }
-        else if(ui->tabWidget->currentIndex() == 4 && ui->tab_paq->currentIndex() == 1){ //限制PAQ8PXD解壓開啟格式
+        else if(ui->tabWidget->currentIndex() == 3 && ui->tab_paq->currentIndex() == 1){ //限制其他解壓開啟格式
 
         }
     }
@@ -734,20 +691,18 @@ void MainWindow::closeEvent(QCloseEvent *event) { //關閉事件 (刪除plugins)
     if(msgbox.clickedButton()==quitbtn){
         timer->stop();
         runCmd("del /f /q C:\\Windows\\Temp\\rar.exe\n"
-               "del /f /q C:\\Windows\\Temp\\winrar.exe\n"
                "del /f /q C:\\Windows\\Temp\\RarFiles.lst\n"
                "del /f /q C:\\Windows\\Temp\\rarreg.key\n"
                "del /f /q C:\\Windows\\Temp\\7z.exe\n"
-               "del /f /q C:\\Windows\\Temp\\7z.dll\n"
                "del /f /q C:\\Windows\\Temp\\upx.exe\n"
-               "del /f /q C:\\Windows\\Temp\\uharc.exe\n"
-               "del /f /q C:\\Windows\\Temp\\pxd_old.exe\n"
                "del /f /q C:\\Windows\\Temp\\pxd.exe\n"
                "del /f /q C:\\Windows\\Temp\\px.exe\n"
                "del /f /q C:\\Windows\\Temp\\cmix.exe\n"
                "del /f /q C:\\Windows\\Temp\\bcm.exe\n"
                "del /f /q C:\\Windows\\Temp\\english.exp\n"
                "del /f /q C:\\Windows\\Temp\\english.dic\n"
+               "del /f /q C:\\Windows\\Temp\\english.emb\n"
+               "del /f /q C:\\Windows\\Temp\\kkanzi.exe\n"
                "del /f /q C:\\Windows\\Temp\\comment.txt\n"
                "del /f /q C:\\Windows\\Temp\\checkver.txt");
         event->accept();
@@ -781,214 +736,126 @@ void MainWindow::on_pushButton_2_clicked() //執行壓縮指令
         setpwd = true;
     }
 
-    //------------ZIP專用參數------------
-    if(ui->rar_zip_rb->isChecked()){ //使用ZIP格式壓縮
-        if(outpath.right(3) == "rar"){ //確保輸出副檔名為zip
-            outpath.chop(3);
-            outpath += "zip";
-            ui->lineEdit_2->setText(outpath);
+    cmd = rar + " a -ep1 -r ";
+
+    if(splitnum != 0 && splitsize != 0) stop = true; //避免分割檔設定衝突
+    else if(splitsize != 0) { //指定分割大小設定
+        switch (ui->rar_splitunit->currentIndex()) {
+        case 0: unit = "b ";  break;
+        case 1: unit = "k ";  break;
+        case 2: unit = "m ";  break;
+        case 3: unit = "g ";  break;
         }
-        cmd = winrar + " a -afzip -ibck ";
-        cmd += "-m" + QString::number(ui->rar_complv->currentIndex()) + " "; //設定壓縮等級
-        cmd += "-ri" + QString::number(ui->rar_other_ri->value()) + " "; //設定優先權
-        if(splitnum != 0 && splitsize != 0) stop = true; //避免分割檔設定衝突
-        else if(splitsize != 0) { //指定分割大小設定
-            switch (ui->rar_splitunit->currentIndex()) {
-            case 0: unit = "b ";  break;
-            case 1: unit = "k ";  break;
-            case 2: unit = "m ";  break;
-            case 3: unit = "g ";  break;
-            }
-            cmd += "-v" + QString::number(splitsize) + unit;
-        }
-        else if(splitnum != 0) { //指定分割數設定
-            cmd += "-v" + QString::number(Getfilesize(inpath) / splitnum +1) + "b ";
-        }
-        if(ui->rar_other_mt->currentIndex() != 0) { //設定執行緒
-            cmd += "-mt" + QString::number(ui->rar_other_mt->currentIndex()) + " ";
-        }
-        if(ui->rar_other_df->isChecked()) cmd += "-df "; //壓縮完將原檔案刪除
-        if(ui->rar_other_t->isChecked()) cmd += "-t "; //壓縮完測試壓縮檔
-        if(ui->rar_other_ed->isChecked()) cmd += "-ed "; //不加入空資料夾
-        if(ui->rar_other_ioff->isChecked()) cmd += "-ioff "; //操作完畢關閉電腦
-        if(ui->rar_other_ms->isChecked()) cmd += "-ms "; //略過已壓縮的檔案
-        if(ui->rar_other_vp->isChecked()) cmd += "-vp "; //每次分割檔案之前暫停
-        if(setpwd) cmd += "-p" + pwd + " "; //加入密碼
-        if(!stop) {
-            if(ui->lineEdit->text() == QStringLiteral("可直接拖曳檔案或資料夾至此")) {
-                QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇欲壓縮的檔案或資料夾！"));
-                msg->exec();
-            }
-            else if(ui->lineEdit_2->text() == QStringLiteral("選擇輸出位置")) {
-                QMessageBox *msg = new QMessageBox;
-                msg->setIcon(QMessageBox::Information);
-                msg->setWindowTitle(QStringLiteral("訊息"));
-                msg->setText(QStringLiteral("未選擇輸出位置，是否輸出到當前目錄？"));
-                QPushButton *ok = msg->addButton(QStringLiteral("是"),QMessageBox::ActionRole);
-                QPushButton *no = msg->addButton(QStringLiteral("否"),QMessageBox::ActionRole);
-                msg->exec();
-                if(msg->clickedButton() == ok){
-                    outpath = deleteFileName(inpath) + "\\output.zip";
-                    cmd += "\"" + outpath + "\" \"" + inpath + "\"";
-                    runCmdForCompOrDecomp(cmd);
-                    ui->tab_winrar->setCurrentIndex(4); //跳到命令執行進度畫面
-                    //等待壓縮完成才取得檔案大小
-                    while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
-                    ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                              "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-                }
-                else if(msg->clickedButton() == no){}
-            }
-            else {
-                cmd += "\"" + outpath + "\" \"" + inpath + "\"";
-                runCmdForCompOrDecomp(cmd);
-                ui->tab_winrar->setCurrentIndex(4); //跳到命令執行進度畫面
-                //等待壓縮完成才取得檔案大小
-                while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
-                ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-            }
-        }
-        else { //顯示分割設定錯誤訊息
-            QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤！"),
-                                               QStringLiteral("分割方式只能擇一\n請將指定大小或分割數設為0   \n\n操作已中斷\n"));
-            msg->exec();
+        cmd += "-v" + QString::number(splitsize) + unit;
+    }
+    else if(splitnum != 0) { //指定分割數設定
+        cmd += "-v" + QString::number(Getfilesize(inpath) / splitnum +1) + "b ";
+    }
+
+    if(ui->rar_rb->isChecked()) { //使用RAR4格式壓縮
+        cmd += "-ma4 -md";
+        switch (ui->rar_dictsize->currentIndex()){ //RAR4字典檔大小
+        case 0: cmd += "64k "; break;
+        case 1: cmd += "128k "; break;
+        case 2: cmd += "256k "; break;
+        case 3: cmd += "512k "; break;
+        case 4: cmd += "1 "; break;
+        case 5: cmd += "2 "; break;
+        case 6: cmd += "4 "; break;
         }
     }
-    //------------ZIP專用參數------------
+    else {
+        cmd += "-md";
+        switch (ui->rar_dictsize->currentIndex()){ //RAR5字典檔大小
+        case 0: cmd += "128k "; break;
+        case 1: cmd += "256k "; break;
+        case 2: cmd += "512k "; break;
+        case 3: cmd += "1 "; break;
+        case 4: cmd += "2 "; break;
+        case 5: cmd += "4 "; break;
+        case 6: cmd += "8 "; break;
+        case 7: cmd += "16 "; break;
+        case 8: cmd += "32 "; break;
+        case 9: cmd += "64 "; break;
+        case 10: cmd += "128 "; break;
+        case 11: cmd += "256 "; break;
+        case 12: cmd += "512 "; break;
+        case 13: cmd += "1g "; break;
+        }
+    }
+    cmd += "-m" + QString::number(ui->rar_complv->currentIndex()) + " "; //設定壓縮等級
+    cmd += "-ri" + QString::number(ui->rar_other_ri->value()) + " "; //設定優先權
+    //細項設定
+    if(ui->rar_other_df->isChecked()) cmd += "-df "; //壓縮完將原檔案刪除
+    if(ui->rar_other_dw->isChecked()) cmd += "-dw "; //壓縮完將原檔案抹除
+    if(ui->rar_other_t->isChecked()) cmd += "-t "; //壓縮完測試壓縮檔
+    if(ui->rar_other_s->isChecked()) cmd += "-s "; //建立結實壓縮檔
+    if(ui->rar_other_k->isChecked()) cmd += "-k "; //鎖定壓縮檔
+    if(ui->rar_other_ed->isChecked()) cmd += "-ed "; //不加入空資料夾
+    if(ui->rar_other_ioff->currentIndex() == 1) cmd += "-ioff "; //操作完畢關閉電腦
+    else if(ui->rar_other_ioff->currentIndex() == 2) cmd += "-ioff2 "; //操作完畢休眠電腦
+    else if(ui->rar_other_ioff->currentIndex() == 3) cmd += "-ioff3 "; //操作完畢睡眠電腦
+    if(ui->rar_other_ms->isChecked()) cmd += "-ms "; //略過已壓縮的檔案
+    if(ui->rar_other_vp->isChecked()) cmd += "-vp "; //每次分割檔案之前暫停
+    if(ui->rar_other_qo->isChecked()) cmd += "-qo+ "; //加入快速開啟資訊
+    if(ui->rar_other_qo_2->isChecked()) cmd += "-qo- "; //完全排除快速開啟資訊
+    if(ui->rar_other_oc->isChecked()) cmd += "-oc "; //設定 NTFS 壓縮屬性
+    if(ui->rar_other_mt->currentIndex() != 0) { //設定執行緒
+        cmd += "-mt" + QString::number(ui->rar_other_mt->currentIndex()) + " ";
+    }
+    //細項設定
 
-    else{ //預設使用RAR5格式壓縮
-        if(outpath.right(3) == "zip"){ //確保輸出副檔名為rar
-            outpath.chop(3);
-            outpath += "rar";
-            ui->lineEdit_2->setText(outpath);
+    if(!stop) {
+        if(ui->lineEdit->text() == QStringLiteral("可直接拖曳檔案或資料夾至此")) {
+            QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇欲壓縮的檔案或資料夾！"));
+            msg->exec();
         }
-        cmd = rar + " a -r ";
-
-        if(splitnum != 0 && splitsize != 0) stop = true; //避免分割檔設定衝突
-        else if(splitsize != 0) { //指定分割大小設定
-            switch (ui->rar_splitunit->currentIndex()) {
-            case 0:
-                unit = "b ";  break;
-            case 1:
-                unit = "k ";  break;
-            case 2:
-                unit = "m ";  break;
-            case 3:
-                unit = "g ";  break;
-            }
-            cmd += "-v" + QString::number(splitsize) + unit;
-        }
-        else if(splitnum != 0) { //指定分割數設定
-            cmd += "-v" + QString::number(Getfilesize(inpath) / splitnum +1) + "b ";
-        }
-
-        //------------RAR4專用參數------------
-        if(ui->rar_rb->isChecked()) { //使用RAR4格式壓縮
-            cmd += "-ma4 -md";
-            switch (ui->rar_dictsize->currentIndex()){ //RAR4字典檔大小
-            case 0: cmd += "64k "; break;
-            case 1: cmd += "128k "; break;
-            case 2: cmd += "256k "; break;
-            case 3: cmd += "512k "; break;
-            case 4: cmd += "1 "; break;
-            case 5: cmd += "2 "; break;
-            case 6: cmd += "4 "; break;
-            }
-        }
-        //------------RAR4專用參數------------
-        else {
-            cmd += "-md";
-            switch (ui->rar_dictsize->currentIndex()){ //RAR5字典檔大小
-            case 0: cmd += "128k "; break;
-            case 1: cmd += "256k "; break;
-            case 2: cmd += "512k "; break;
-            case 3: cmd += "1 "; break;
-            case 4: cmd += "2 "; break;
-            case 5: cmd += "4 "; break;
-            case 6: cmd += "8 "; break;
-            case 7: cmd += "16 "; break;
-            case 8: cmd += "32 "; break;
-            case 9: cmd += "64 "; break;
-            case 10: cmd += "128 "; break;
-            case 11: cmd += "256 "; break;
-            case 12: cmd += "512 "; break;
-            case 13: cmd += "1g "; break;
-            }
-        }
-        cmd += "-m" + QString::number(ui->rar_complv->currentIndex()) + " "; //設定壓縮等級
-        cmd += "-ri" + QString::number(ui->rar_other_ri->value()) + " "; //設定優先權
-        //其他細項設定
-        if(ui->rar_other_df->isChecked()) cmd += "-df "; //壓縮完將原檔案刪除
-        if(ui->rar_other_dw->isChecked()) cmd += "-dw "; //壓縮完將原檔案抹除
-        if(ui->rar_other_t->isChecked()) cmd += "-t "; //壓縮完測試壓縮檔
-        if(ui->rar_other_s->isChecked()) cmd += "-s "; //建立結實壓縮檔
-        if(ui->rar_other_k->isChecked()) cmd += "-k "; //鎖定壓縮檔
-        if(ui->rar_other_ed->isChecked()) cmd += "-ed "; //不加入空資料夾
-        if(ui->rar_other_ioff->isChecked()) cmd += "-ioff "; //操作完畢關閉電腦
-        if(ui->rar_other_ms->isChecked()) cmd += "-ms "; //略過已壓縮的檔案
-        if(ui->rar_other_vp->isChecked()) cmd += "-vp "; //每次分割檔案之前暫停
-        if(ui->rar_other_qo->isChecked()) cmd += "-qo+ "; //加入快速開啟資訊
-        if(ui->rar_other_qo_2->isChecked()) cmd += "-qo- "; //完全排除快速開啟資訊
-        if(ui->rar_other_oc->isChecked()) cmd += "-oc "; //設定 NTFS 壓縮屬性
-        if(ui->rar_other_mt->currentIndex() != 0) { //設定執行緒
-            cmd += "-mt" + QString::number(ui->rar_other_mt->currentIndex()) + " ";
-        }
-        //其他細項設定
-
-        if(!stop) {
-            if(ui->lineEdit->text() == QStringLiteral("可直接拖曳檔案或資料夾至此")) {
-                QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇欲壓縮的檔案或資料夾！"));
-                msg->exec();
-            }
-            else if(ui->lineEdit_2->text() == QStringLiteral("選擇輸出位置")) {
-                QMessageBox *msg = new QMessageBox;
-                msg->setIcon(QMessageBox::Information);
-                msg->setWindowTitle(QStringLiteral("訊息"));
-                msg->setText(QStringLiteral("未選擇輸出位置，是否輸出到當前目錄？"));
-                QPushButton *ok = msg->addButton(QStringLiteral("是"),QMessageBox::ActionRole);
-                QPushButton *no = msg->addButton(QStringLiteral("否"),QMessageBox::ActionRole);
-                msg->exec();
-                if(msg->clickedButton() == ok){
-                    outpath = deleteFileName(inpath) + "\\output.rar";
-                    //------------加入密碼------------
-                    if(setpwd) {
-                        if(ui->rar_Encryption1->isChecked()) cmd += "-p \"" + outpath + "\" \"" + inpath + "\" < pwd.txt";
-                        else if(ui->rar_Encryption2->isChecked()) cmd += "-hp \"" + outpath + "\" \"" + inpath + "\" < pwd.txt";
-                    }
-                    else cmd += "\"" + outpath + "\" \"" + inpath + "\"";
-                    //------------加入密碼------------
-                    runCmdForCompOrDecomp(cmd);
-                    ui->tab_winrar->setCurrentIndex(4); //跳到命令執行進度畫面
-                    //等待壓縮完成才取得檔案大小
-                    while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
-                    ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                              "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-                }
-                else if(msg->clickedButton() == no){}
-            }
-            else {
+        else if(ui->lineEdit_2->text() == QStringLiteral("選擇輸出位置")) {
+            QMessageBox *msg = new QMessageBox;
+            msg->setIcon(QMessageBox::Information);
+            msg->setWindowTitle(QStringLiteral("訊息"));
+            msg->setText(QStringLiteral("未選擇輸出位置，是否輸出到當前目錄？"));
+            QPushButton *ok = msg->addButton(QStringLiteral("是"),QMessageBox::ActionRole);
+            QPushButton *no = msg->addButton(QStringLiteral("否"),QMessageBox::ActionRole);
+            msg->exec();
+            if(msg->clickedButton() == ok){
+                outpath = deleteFileName(inpath) + "\\output.rar";
                 //------------加入密碼------------
                 if(setpwd) {
-                    if(ui->rar_Encryption1->isChecked()) cmd += "-p " + outpath + " " + inpath + " < pwd.txt";
-                    else if(ui->rar_Encryption2->isChecked()) cmd += "-hp " + outpath + " " + inpath + " < pwd.txt";
+                    if(ui->rar_Encryption1->isChecked()) cmd += "-p \"" + outpath + "\" \"" + inpath + "\" < pwd.txt";
+                    else if(ui->rar_Encryption2->isChecked()) cmd += "-hp \"" + outpath + "\" \"" + inpath + "\" < pwd.txt";
                 }
                 else cmd += "\"" + outpath + "\" \"" + inpath + "\"";
                 //------------加入密碼------------
                 runCmdForCompOrDecomp(cmd);
-                ui->tab_winrar->setCurrentIndex(4); //跳到命令執行進度畫面
+                ui->tab_winrar->setCurrentIndex(3); //跳到命令執行進度畫面
                 //等待壓縮完成才取得檔案大小
                 while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
                 ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-
+                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg((Getfilesize(outpath)*100)/Getfilesize(inpath)));
             }
+            else if(msg->clickedButton() == no){}
         }
-        else { //顯示執行錯誤訊息
-            QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤！"),
-                                               QStringLiteral("分割方式只能擇一\n請將指定大小或分割數設為0   \n\n操作已中斷"));
-            msg->exec();
+        else {
+            //------------加入密碼------------
+            if(setpwd) {
+                if(ui->rar_Encryption1->isChecked()) cmd += "-p " + outpath + " " + inpath + " < pwd.txt";
+                else if(ui->rar_Encryption2->isChecked()) cmd += "-hp " + outpath + " " + inpath + " < pwd.txt";
+            }
+            else cmd += "\"" + outpath + "\" \"" + inpath + "\"";
+            //------------加入密碼------------
+            runCmdForCompOrDecomp(cmd);
+            ui->tab_winrar->setCurrentIndex(3); //跳到命令執行進度畫面
+            //等待壓縮完成才取得檔案大小
+            while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
+            ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
+                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg((Getfilesize(outpath)*100)/Getfilesize(inpath)));
         }
+    }
+    else { //顯示執行錯誤訊息
+        QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤！"),
+                                           QStringLiteral("分割方式只能擇一\n請將指定大小或分割數設為0   \n\n操作已中斷"));
+        msg->exec();
     }
 }
 void MainWindow::on_pushButton_6_clicked() //加入or編輯註解至選擇的壓縮檔
@@ -1039,10 +906,6 @@ void MainWindow::on_rar_comm_outpath_btn_clicked() //輸出註解為文字檔
 void MainWindow::on_rar_setpwd_btn_clicked() //加入壓縮檔密碼
 {
     bool ok;
-    if(ui->rar_zip_rb->isChecked()){
-        QMessageBox *msg = new QMessageBox(QMessageBox::Information,QStringLiteral("注意！"),QStringLiteral("目前本版本的WinRAR-ZIP暫時不支援中文密碼！"));
-        msg->exec();
-    }
     QString text = QInputDialog::getText(this,QStringLiteral("請輸入"),QStringLiteral("請輸入密碼："),QLineEdit::Password,"",&ok);
     if (ok && !text.isEmpty()) pwd = text;
 }
@@ -1091,18 +954,6 @@ void MainWindow::on_rar5_rb_pressed() //RAR5專用設定配置
     ui->rar_dictsize->insertItem(13,"1 GB");
     ui->rar_dictsize->setCurrentIndex(8);
 }
-void MainWindow::on_rar_zip_rb_pressed() //WinRAR-ZIP專用設定配置
-{
-    ui->rar_other_oc->setEnabled(false);
-    ui->rar_other_dw->setEnabled(false);
-    ui->rar_other_k->setEnabled(false);
-    ui->rar_other_s->setEnabled(false);
-    ui->rar_other_qo->setEnabled(false);
-    ui->rar_other_qo_2->setEnabled(false);
-    ui->rar_Encryption2->setDisabled(true);
-    ui->rar_dictsize->clear();
-    ui->rar_dictsize->insertItem(0,"32 KB");
-}
 //壓縮設定
 
 //解壓設定
@@ -1118,7 +969,6 @@ void MainWindow::on_unrar_btn_clicked() //解壓
     if(ui->unrar_or->isChecked()) cmd += "-or ";
     if(ui->unrar_ep->isChecked()) cmd += "-ep ";
     switch (ui->unrar_o->currentIndex()) { //設定覆寫模式
-    //case 0: cmd += "-o "; break;
     case 0: cmd += "-o+ "; break;
     case 1: cmd += "-o- "; break;
     }
@@ -1143,7 +993,7 @@ void MainWindow::on_unrar_btn_clicked() //解壓
             if(msg->clickedButton() == ok){
                 cmd += "\"" + deleteFileName(inpath) + "\"";
                 runCmdForCompOrDecomp(cmd);
-                ui->tab_winrar->setCurrentIndex(4); //跳到命令執行進度畫面
+                ui->tab_winrar->setCurrentIndex(3); //跳到命令執行進度畫面
                 //等待解壓縮完成
                 while(1) {
                     delay_1ms();
@@ -1168,7 +1018,7 @@ void MainWindow::on_unrar_btn_clicked() //解壓
         else {
             cmd += outpath + "\"";
             runCmdForCompOrDecomp(cmd);
-            ui->tab_winrar->setCurrentIndex(4); //跳到命令執行進度畫面
+            ui->tab_winrar->setCurrentIndex(3); //跳到命令執行進度畫面
             //等待解壓縮完成
             while(1) {
                 delay_1ms();
@@ -1187,7 +1037,7 @@ void MainWindow::on_unrar_btn_clicked() //解壓
 void MainWindow::on_unrar_viewbtn_clicked() //查看壓縮檔內容
 {
     QString line;
-    int delUseless = NULL;
+    int delUseless = 0;
 
     if(isArchive_WinRAR(inpath) && isArchive_7Zip(inpath)){
         //輸出檔案清單txt
@@ -1303,190 +1153,7 @@ void MainWindow::on_unrar_viewbtn_clicked() //查看壓縮檔內容
 }
 //解壓設定
 
-//快速功能區
-void MainWindow::on_rar_1click_clicked() //RAR全預設一鍵壓縮
-{
-    QString cmd = rar + " a -r -ma4 ";
-    bool setpwd=false;
-
-    ui->statusBar->clearMessage(); //清除statusBar
-    ui->rar_cmdOutput->clear(); //清除命令執行進度
-
-    if(!pwd.isEmpty()){ //設定密碼
-        QFile mfile("pwd.txt");
-        if(!mfile.open(QFile::WriteOnly|QFile::Text)) return;
-        QTextStream out(&mfile);
-        out<<pwd;
-        mfile.flush();
-        mfile.close();
-        setpwd = true;
-    }
-
-    if(outpath.right(3) == "zip"){ //確保輸出副檔名為rar
-        outpath.chop(3);
-        outpath += "rar";
-        ui->lineEdit_2->setText(outpath);
-    }
-
-    if(ui->lineEdit->text() == QStringLiteral("可直接拖曳檔案或資料夾至此")) {
-        QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇欲壓縮的檔案或資料夾！"));
-        msg->exec();
-    }
-    else if(ui->lineEdit_2->text() == QStringLiteral("選擇輸出位置")) {
-        QMessageBox *msg = new QMessageBox;
-        msg->setIcon(QMessageBox::Information);
-        msg->setWindowTitle(QStringLiteral("訊息"));
-        msg->setText(QStringLiteral("未選擇輸出位置，是否輸出到當前目錄？"));
-        QPushButton *ok = msg->addButton(QStringLiteral("是"),QMessageBox::ActionRole);
-        QPushButton *no = msg->addButton(QStringLiteral("否"),QMessageBox::ActionRole);
-        msg->exec();
-        if(msg->clickedButton() == ok){
-            outpath = deleteFileName(inpath) + "\\output.rar";
-            //------------加入密碼------------
-            if(setpwd) {
-                if(ui->rar_Encryption1->isChecked()) cmd += "-p " + outpath + " " + inpath + " < pwd.txt";
-                else if(ui->rar_Encryption2->isChecked()) cmd += "-hp " + outpath + " " + inpath + " < pwd.txt";
-            }
-            else cmd += "\"" + outpath + "\" \"" + inpath + "\"";
-            //------------加入密碼------------
-            runCmdForCompOrDecomp(cmd);
-            //等待壓縮完成才取得檔案大小
-            while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
-            ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-        }
-        else if(msg->clickedButton() == no){}
-    }
-    else {
-        //------------加入密碼------------
-        if(setpwd) {
-            if(ui->rar_Encryption1->isChecked()) cmd += "-p " + outpath + " " + inpath + " < pwd.txt";
-            else if(ui->rar_Encryption2->isChecked()) cmd += "-hp " + outpath + " " + inpath + " < pwd.txt";
-        }
-        else cmd += outpath + " " + inpath;
-        //------------加入密碼------------
-        runCmdForCompOrDecomp(cmd);
-        //等待壓縮完成才取得檔案大小
-        while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
-        ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                  "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-    }
-}
-void MainWindow::on_rar5_1click_clicked() //RAR5全預設一鍵壓縮
-{
-    QString cmd = rar + " a -r ";
-    bool setpwd=false;
-
-    ui->statusBar->clearMessage(); //清除statusBar
-    ui->rar_cmdOutput->clear(); //清除命令執行進度
-
-    if(!pwd.isEmpty()){ //設定密碼
-        QFile mfile("pwd.txt");
-        if(!mfile.open(QFile::WriteOnly|QFile::Text)) return;
-        QTextStream out(&mfile);
-        out<<pwd;
-        mfile.flush();
-        mfile.close();
-        setpwd = true;
-    }
-
-    if(outpath.right(3) == "zip"){ //確保輸出副檔名為rar
-        outpath.chop(3);
-        outpath += "rar";
-        ui->lineEdit_2->setText(outpath);
-    }
-
-    if(ui->lineEdit->text() == QStringLiteral("可直接拖曳檔案或資料夾至此")) {
-        QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇欲壓縮的檔案或資料夾！"));
-        msg->exec();
-    }
-    else if(ui->lineEdit_2->text() == QStringLiteral("選擇輸出位置")) {
-        QMessageBox *msg = new QMessageBox;
-        msg->setIcon(QMessageBox::Information);
-        msg->setWindowTitle(QStringLiteral("訊息"));
-        msg->setText(QStringLiteral("未選擇輸出位置，是否輸出到當前目錄？"));
-        QPushButton *ok = msg->addButton(QStringLiteral("是"),QMessageBox::ActionRole);
-        QPushButton *no = msg->addButton(QStringLiteral("否"),QMessageBox::ActionRole);
-        msg->exec();
-        if(msg->clickedButton() == ok){
-            outpath = deleteFileName(inpath) + "\\output.rar";
-            //------------加入密碼------------
-            if(setpwd) {
-                if(ui->rar_Encryption1->isChecked()) cmd += "-p " + outpath + " " + inpath + " < pwd.txt";
-                else if(ui->rar_Encryption2->isChecked()) cmd += "-hp " + outpath + " " + inpath + " < pwd.txt";
-            }
-            else cmd += "\"" + outpath + "\" \"" + inpath + "\"";
-            //------------加入密碼------------
-            runCmdForCompOrDecomp(cmd);
-            //等待壓縮完成才取得檔案大小
-            while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
-            ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-        }
-        else if(msg->clickedButton() == no){}
-    }
-    else {
-        //------------加入密碼------------
-        if(setpwd) {
-            if(ui->rar_Encryption1->isChecked()) cmd += "-p " + outpath + " " + inpath + " < pwd.txt";
-            else if(ui->rar_Encryption2->isChecked()) cmd += "-hp " + outpath + " " + inpath + " < pwd.txt";
-        }
-        else cmd += outpath + " " + inpath;
-        //------------加入密碼------------
-        runCmdForCompOrDecomp(cmd);
-        //等待壓縮完成才取得檔案大小
-        while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
-        ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                  "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-    }
-}
-void MainWindow::on_winrar_zip_1click_clicked() //WinRAR-ZIP全預設一鍵壓縮
-{
-    QString cmd = winrar + " a -afzip -ibck ";
-
-    ui->statusBar->clearMessage(); //清除statusBar
-    ui->rar_cmdOutput->clear(); //清除命令執行進度
-
-    if(outpath.right(3) == "rar"){ //確保輸出副檔名為zip
-        outpath.chop(3);
-        outpath += "zip";
-        ui->lineEdit_2->setText(outpath);
-    }
-
-    if(!pwd.isEmpty()) cmd = "-p" + pwd + " ";
-
-    if(ui->lineEdit->text() == QStringLiteral("可直接拖曳檔案或資料夾至此")) {
-        QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇欲壓縮的檔案或資料夾！"));
-        msg->exec();
-    }
-    else if(ui->lineEdit_2->text() == QStringLiteral("選擇輸出位置")) {
-        QMessageBox *msg = new QMessageBox;
-        msg->setIcon(QMessageBox::Information);
-        msg->setWindowTitle(QStringLiteral("訊息"));
-        msg->setText(QStringLiteral("未選擇輸出位置，是否輸出到當前目錄？"));
-        QPushButton *ok = msg->addButton(QStringLiteral("是"),QMessageBox::ActionRole);
-        QPushButton *no = msg->addButton(QStringLiteral("否"),QMessageBox::ActionRole);
-        msg->exec();
-        if(msg->clickedButton() == ok){
-            outpath = deleteFileName(inpath) + "\\output.zip";
-            cmd += "\"" + outpath + "\" \"" + inpath + "\"";
-            runCmdForCompOrDecomp(cmd);
-            //等待壓縮完成才取得檔案大小
-            while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
-            ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-        }
-        else if(msg->clickedButton() == no){}
-    }
-    else {
-        cmd += "\"" + outpath + "\" \"" + inpath + "\"";
-        runCmdForCompOrDecomp(cmd);
-        //等待壓縮完成才取得檔案大小
-        while(!ui->rar_cmdOutput->toPlainText().contains(QStringLiteral("完成"))) delay_1ms();
-        ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                  "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-    }
-}
+//快速功能
 void MainWindow::on_unrar_1click_clicked() //一鍵解壓到當前資料夾
 {
     ui->statusBar->clearMessage(); //清除statusBar
@@ -1499,9 +1166,8 @@ void MainWindow::on_unrar_1click_clicked() //一鍵解壓到當前資料夾
     if(ui->unrar_or->isChecked()) cmd += "-or ";
     if(ui->unrar_ep->isChecked()) cmd += "-ep ";
     switch (ui->unrar_o->currentIndex()) { //設定覆寫模式
-    case 0: cmd += "-o "; break;
-    case 1: cmd += "-o+ "; break;
-    case 2: cmd += "-o- "; break;
+    case 0: cmd += "-o+ "; break;
+    case 1: cmd += "-o- "; break;
     }
     cmd += "\"" + inpath + "\" \"" + deleteFileName(inpath) + "\"";
     if(ui->lineEdit->text() == QStringLiteral("可直接拖曳檔案或資料夾至此")) {
@@ -1521,7 +1187,7 @@ void MainWindow::on_unrar_1click_clicked() //一鍵解壓到當前資料夾
         }
     }
 }
-//快速功能區
+//快速功能
 
 //設定提醒通知
 void MainWindow::on_rar_other_df_clicked() //壓縮完將原檔案刪除
@@ -1610,7 +1276,7 @@ void MainWindow::on_rar_dictsize_currentIndexChanged(int index) //提醒字典�
         msgbox.setWindowTitle(QStringLiteral("功能介紹"));
         msgbox.setInformativeText(QStringLiteral("<font size='7' color='black'><b>注意：</b></font><br>"
                                                  "<font size='6' color='black'>"
-                                                 "執行操作前請務必確保有足夠的記憶體供本程式使用<br>"
+                                                 "執行操作前請務必確保有足夠的記憶體供WinRAR使用<br>"
                                                  "需占用的記憶體：<font size='6' color='blue'><b>%1MB</b></font><br>"
                                                  "空閒記憶體：<font size='6' color='blue'><b>%2MB</b></font><br>"
                                                  "狀態：<font size='6' color='red'><b>%3</b></font><br><br></font>"
@@ -1660,7 +1326,7 @@ void MainWindow::on_rar_splitnum_valueChanged(int value) //警告分割檔設定
 void MainWindow::on_sz_viewbtn_clicked() //查看壓縮檔內容
 {
     QString line;
-    int delUseless = NULL;
+    int delUseless = 0;
 
     if(isArchive_7Zip(inpath)){
         //輸出檔案清單txt
@@ -1780,14 +1446,6 @@ void MainWindow::on_sz_viewbtn_clicked() //查看壓縮檔內容
 
 //000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
-//------------------------------UHARC------------------------------//
-
-
-
-//------------------------------UHARC------------------------------//
-
-//000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-
 //------------------------------UPX---------------------------------//
 
 
@@ -1796,7 +1454,7 @@ void MainWindow::on_sz_viewbtn_clicked() //查看壓縮檔內容
 
 //000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
-//------------------------------實驗工具---------------------------//
+//------------------------------其他工具---------------------------//
 //壓縮設定
 void MainWindow::on_paq_compRunCmd_clicked()
 {
@@ -1805,21 +1463,15 @@ void MainWindow::on_paq_compRunCmd_clicked()
     QString compLv =  QString::number(ui->paq_compLv->value());
     QString threads =  QString::number(ui->paq_threads->currentIndex()+1);
     QString px_switch;
+    QString temp;
     //用於警告壓縮注意事項
     QMessageBox *msg2 = new QMessageBox;
     QPushButton *ok2 = msg2->addButton(QStringLiteral("繼續"),QMessageBox::ActionRole);
     QPushButton *no2 = msg2->addButton(QStringLiteral("取消"),QMessageBox::ActionRole);
 
-    int tool = ui->paq_tool->currentIndex();
+    int tool = ui->others_tool->currentIndex();
 
-    if(tool == 0){ //輸出後改檔名為[*.q0.0] or [*.lv5.1] or [*.lv9.2]依此類推
-        switch (ui->paq_compSpeed->currentIndex()) {
-        case 0: secFileExt = "q" + compLv; break;
-        case 1: secFileExt = "f" + compLv; break;
-        case 2: secFileExt = "s" + compLv; break;
-        }
-    }
-    else if(tool == 1 || tool == 2) secFileExt = "lv" + compLv;
+    secFileExt = "lv" + compLv; //輸出後改檔名為[*.lv5.1] or [*.lv9.2]依此類推
 
     ui->paq_cmdOutput->clear(); //清除命令執行進度
 
@@ -1835,29 +1487,21 @@ void MainWindow::on_paq_compRunCmd_clicked()
         QPushButton *ok = msg->addButton(QStringLiteral("是"),QMessageBox::ActionRole);
         QPushButton *no = msg->addButton(QStringLiteral("否"),QMessageBox::ActionRole);
         msg->exec();
+
         if(msg->clickedButton() == ok){
             outpath = deleteFileName(inpath) + "\\output.";
-            QString temp = outpath;
+            temp = outpath;
             switch (tool) {
-            case 0: //pxd_old
-                cmd = pxd_old + " -" + secFileExt + ":" + threads + " \"" + outpath + secFileExt + "\" \"" + inpath + "\"";
-                runCmdForCompOrDecomp(cmd); //開始執行
-                ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-                //等待壓縮完成才取得檔案大小
-                while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
-                ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".0")).arg(float(Getfilesize(outpath + secFileExt + ".0")*100)/float(Getfilesize(inpath))));
-                break;
-            case 1: //pxd_new
+            case 0: //pxd
                 cmd = pxd_new + " -s" + compLv + ":" + threads + " \"" + outpath + secFileExt + "\" \"" + inpath + "\"";
                 runCmdForCompOrDecomp(cmd); //開始執行
                 ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
                 //等待壓縮完成才取得檔案大小
                 while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
                 ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".1")).arg(float(Getfilesize(outpath + secFileExt + ".1")*100)/float(Getfilesize(inpath))));
+                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".1")).arg((Getfilesize(outpath + secFileExt + ".1")*100)/Getfilesize(inpath)));
                 break;
-            case 2: //px
+            case 1: //px
                 if(ui->px_switch_a->isChecked()) px_switch += "a";
                 if(ui->px_switch_b->isChecked()) px_switch += "b";
                 if(ui->px_switch_e->isChecked()) px_switch += "e";
@@ -1870,9 +1514,9 @@ void MainWindow::on_paq_compRunCmd_clicked()
                 //等待壓縮完成才取得檔案大小
                 while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
                 ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".2")).arg(float(Getfilesize(outpath + secFileExt + ".2")*100)/float(Getfilesize(inpath))));
+                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".2")).arg((Getfilesize(outpath + secFileExt + ".2")*100)/Getfilesize(inpath)));
                 break;
-            case 3: //cmix
+            case 2: //cmix
                 msg2->setIcon(QMessageBox::Warning);
                 msg2->setWindowTitle(QStringLiteral("注意！"));
                 msg2->setText(QStringLiteral("主記憶體+虛擬記憶體至少需要32GB以上的空間，否則將發生不可預期錯誤"));
@@ -1880,114 +1524,95 @@ void MainWindow::on_paq_compRunCmd_clicked()
                 if(msg2->clickedButton() == ok2){}
                 else if(msg2->clickedButton() == no2){ break; }
 
-                if(ui->paq_precomp->isChecked()){ //預處理 *.pre.0
-                    temp += "pre";
-                    cmd = pxd_old + " -q0" + " \"" + temp + "\" \"" + inpath + "\"";
-                    temp += ".0";
-                    runCmdForCompOrDecomp(cmd); //開始執行預處理
-                    ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-                    //等待預處理完成才繼續執行後續壓縮
-                    //while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
-                    delay_1s();delay_1s();
-                }
-                else { //歸檔 *.tar
-                    temp += "tar";
-                    cmd = sz + " a -ttar -mx0 -sccUTF-8 -bb0 \"-w" + deleteFileName(inpath) + "\" \"" + temp + "\" \"" + inpath + "\"";
-                    runCmdForCompOrDecomp(cmd); //開始執行歸檔
-                    ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-                    //等待歸檔完成才繼續執行後續壓縮
-                    //while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("Everything"))) delay_1ms();
-                    delay_1s();delay_1s();
-                }
+                //歸檔 *.tar
+                temp += "tar";
+                cmd = sz + " a -ttar -mx0 -sccUTF-8 -bb0 \"-w" + deleteFileName(inpath) + "\" \"" + temp + "\" \"" + inpath + "\"";
+                runCmdForCompOrDecomp(cmd); //開始執行歸檔
+                //等待歸檔完成才繼續執行後續壓縮
+                while(!ui->sz_cmdOutput->toPlainText().contains(QStringLiteral("Everything"))) delay_1ms();
+                ui->sz_cmdOutput->clear(); //清除命令執行進度
 
                 outpath = temp;
-                if(ui->paq_dic->currentIndex() == 0) {
-                    if(ui->paq_precomp->isChecked()) {outpath.chop(1); outpath += "cmix";}
-                    else {outpath.chop(3); outpath += "cmix";}
-                    cmd = cmix + " -c" + " \"" + temp + "\" \"" + outpath + "\"";
-                }
-                else { //加入字典
-                    if(ui->paq_precomp->isChecked()) {outpath.chop(1); outpath += "dic.cmix";}
-                    else {outpath.chop(3); outpath += "dic.cmix";}
+                outpath.chop(3); //chop "tar"
+                //加入字典
+                if(ui->paq_dic->currentIndex() == 1) {
+                    outpath += "dic.cmix";
                     cmd = cmix + " -c \"" + dic + "\" \"" + temp + "\" \"" + outpath + "\"";
+                }
+                else {
+                    outpath += "cmix";
+                    cmd = cmix + " -c" + " \"" + temp + "\" \"" + outpath + "\"";
                 }
 
                 runCmdForCompOrDecomp(cmd); //開始執行壓縮
+                ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
                 //等待壓縮完成才取得檔案大小
                 while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("cross entropy"))) delay_1ms();
                 ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-                //刪除預處理或歸檔的暫存檔
+                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg((Getfilesize(outpath)*100)/Getfilesize(inpath)));
+                //刪除tar暫存檔
                 delFile = new QFile(temp);
                 delFile->remove();
                 break;
-            case 4: //BCM
-                if(ui->paq_precomp->isChecked()){ //預處理 *.pre.0
-                    temp += "pre";
-                    cmd = pxd_old + " -q0" + " \"" + temp + "\" \"" + inpath + "\"";
-                    temp += ".0";
-                    runCmdForCompOrDecomp(cmd); //開始執行預處理
-                    ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-                    outpath = temp;
-                    outpath.chop(1);
-                    outpath += "bcm";
-                    //等待預處理完成才繼續執行後續壓縮
-                    while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
-                    ui->paq_cmdOutput->clear(); //清除命令執行進度
-                }
-                else { //歸檔 *.tar
-                    temp += "tar";
-                    cmd = sz + " a -ttar -mx0 -sccUTF-8 -bb0 \"-w" + deleteFileName(inpath) + "\" \"" + temp + "\" \"" + inpath + "\"";
-                    runCmdForCompOrDecomp(cmd); //開始執行歸檔
-                    ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-                    outpath = temp;
-                    outpath.chop(3);
-                    outpath += "bcm";
-                    //等待歸檔完成才繼續執行後續壓縮
-                    while(!ui->sz_cmdOutput->toPlainText().contains(QStringLiteral("Everything"))) delay_1ms();
-                    ui->sz_cmdOutput->clear(); //清除命令執行進度
-                }
+            case 3: //bcm
+                //歸檔 *.tar
+                temp += "tar";
+                cmd = sz + " a -ttar -mx0 -sccUTF-8 -bb0 \"-w" + deleteFileName(inpath) + "\" \"" + temp + "\" \"" + inpath + "\"";
+                runCmdForCompOrDecomp(cmd); //開始執行歸檔
+                //等待歸檔完成才繼續執行後續壓縮
+                while(!ui->sz_cmdOutput->toPlainText().contains(QStringLiteral("Everything"))) delay_1ms();
+                ui->sz_cmdOutput->clear(); //清除命令執行進度
 
-                //預處理 = *.pre.bcm , 歸檔 = *.bcm
+                outpath = temp;
+                outpath.chop(3);
+                outpath += "bcm";
                 cmd = bcm + " -b" + compLv + " -f" + " \"" + temp + "\" \"" + outpath + "\"";
 
                 runCmdForCompOrDecomp(cmd);//開始執行
+                ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
                 //等待壓縮完成才取得檔案大小
                 while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("耗時"))) delay_1ms();
                 ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-                //刪除預處理或歸檔的暫存檔
+                                                          "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg((Getfilesize(outpath)*100)/Getfilesize(inpath)));
+                //刪除tar暫存檔
                 delFile = new QFile(temp);
                 delFile->remove();
+                break;
+            case 4: //kanzi
+
                 break;
             }
         }
         else if(msg->clickedButton() == no){}
     }
     else {
-        outpath.chop(1); //避免指令執行錯誤
-        QString temp = outpath; //這時outpath的格式為 [X:\demo\file.]
-
         switch (tool) {
-        case 0: //pxd_old
-            cmd = pxd_old + " -" + secFileExt + ":" + threads + " \"" + outpath + secFileExt + "\" \"" + inpath + "\"";
-            runCmdForCompOrDecomp(cmd); //開始執行
-            ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-            //等待壓縮完成才取得檔案大小
-            while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
-            ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".0")).arg(float(Getfilesize(outpath + secFileExt + ".0")*100)/float(Getfilesize(inpath))));
-            break;
-        case 1: //pxd_new
+        case 0: //pxd
+            if(!isArchive_pxd2(outpath)) {
+                QMessageBox* msg;
+                msg = new QMessageBox(QMessageBox::Critical,QStringLiteral("錯誤！"), QStringLiteral("輸出檔案的副檔名請選擇pxd (*.1)"));
+                msg->exec();
+                break;
+            }
+            else outpath.chop(1); //先刪除副檔名
+
             cmd = pxd_new + " -s" + compLv + ":" + threads + " \"" + outpath + secFileExt + "\" \"" + inpath + "\"";
             runCmdForCompOrDecomp(cmd); //開始執行
             ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
             //等待壓縮完成才取得檔案大小
             while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
             ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".1")).arg(float(Getfilesize(outpath + secFileExt + ".1")*100)/float(Getfilesize(inpath))));
+                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".1")).arg((Getfilesize(outpath + secFileExt + ".1")*100)/Getfilesize(inpath)));
             break;
-        case 2: //px
+        case 1: //px
+            if(!isArchive_PX(outpath)) {
+                QMessageBox* msg;
+                msg = new QMessageBox(QMessageBox::Critical,QStringLiteral("錯誤！"), QStringLiteral("輸出檔案的副檔名請選擇px (*.2)"));
+                msg->exec();
+                break;
+            }
+            else outpath.chop(1); //先刪除副檔名
+
             if(ui->px_switch_a->isChecked()) px_switch += "a";
             if(ui->px_switch_b->isChecked()) px_switch += "b";
             if(ui->px_switch_e->isChecked()) px_switch += "e";
@@ -2000,9 +1625,18 @@ void MainWindow::on_paq_compRunCmd_clicked()
             //等待壓縮完成才取得檔案大小
             while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
             ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".2")).arg(float(Getfilesize(outpath + secFileExt + ".2")*100)/float(Getfilesize(inpath))));
+                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath + secFileExt + ".2")).arg((Getfilesize(outpath + secFileExt + ".2")*100)/Getfilesize(inpath)));
             break;
-        case 3: //cmix
+        case 2: //cmix
+            if(!isArchive_cmix(outpath)) {
+                QMessageBox* msg;
+                msg = new QMessageBox(QMessageBox::Critical,QStringLiteral("錯誤！"), QStringLiteral("輸出檔案的副檔名請選擇cmix (*.cmix)"));
+                msg->exec();
+                break;
+            }
+            else outpath.chop(4); //先刪除副檔名
+            temp = outpath; //這時outpath的格式為 [X:\demo\file.]
+
             msg2->setIcon(QMessageBox::Warning);
             msg2->setWindowTitle(QStringLiteral("注意！"));
             msg2->setText(QStringLiteral("主記憶體+虛擬記憶體至少需要32GB以上的空間，否則將發生不可預期錯誤"));
@@ -2010,88 +1644,86 @@ void MainWindow::on_paq_compRunCmd_clicked()
             if(msg2->clickedButton() == ok2){}
             else if(msg2->clickedButton() == no2){ break; }
 
-            if(ui->paq_precomp->isChecked()){ //預處理 *.pre.0
-                temp += "pre";
-                cmd = pxd_old + " -q0" + " \"" + temp + "\" \"" + inpath + "\"";
-                temp += ".0";
-                runCmdForCompOrDecomp(cmd); //開始執行預處理
-                ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-            }
-            else { //歸檔 *.tar
-                temp += "tar";
-                cmd = sz + " a -ttar -mx0 -sccUTF-8 -bb0 \"-w" + deleteFileName(inpath) + "\" \"" + temp + "\" \"" + inpath + "\"";
-                runCmdForCompOrDecomp(cmd); //開始執行歸檔
-                ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-            }
+            //歸檔 *.tar
+            temp += "tar";
+            cmd = sz + " a -ttar -mx0 -sccUTF-8 -bb0 \"-w" + deleteFileName(inpath) + "\" \"" + temp + "\" \"" + inpath + "\"";
+            runCmdForCompOrDecomp(cmd); //開始執行歸檔
+            //等待歸檔完成才繼續執行後續壓縮
+            while(!ui->sz_cmdOutput->toPlainText().contains(QStringLiteral("Everything"))) delay_1ms();
+            ui->sz_cmdOutput->clear(); //清除命令執行進度
 
             outpath = temp;
-            if(ui->paq_dic->currentIndex() == 0) {
-                if(ui->paq_precomp->isChecked()) {outpath.chop(1); outpath += "cmix";}
-                else {outpath.chop(3); outpath += "cmix";}
-                cmd = cmix + " -c" + " \"" + temp + "\" \"" + outpath + "\"";
-            }
-            else { //加入字典
-                if(ui->paq_precomp->isChecked()) {outpath.chop(1); outpath += "dic.cmix";}
-                else {outpath.chop(3); outpath += "dic.cmix";}
+            outpath.chop(3);
+            //加入字典
+            if(ui->paq_dic->currentIndex() == 1) {
+                outpath += "dic.cmix";
                 cmd = cmix + " -c \"" + dic + "\" \"" + temp + "\" \"" + outpath + "\"";
+            }
+            else {
+                outpath += "cmix";
+                cmd = cmix + " -c" + " \"" + temp + "\" \"" + outpath + "\"";
             }
 
             runCmdForCompOrDecomp(cmd); //開始執行壓縮
+            ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
             //等待壓縮完成才取得檔案大小
             while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("cross entropy"))) delay_1ms();
             ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-            //刪除預處理或歸檔的暫存檔
+                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg((Getfilesize(outpath)*100)/Getfilesize(inpath)));
+            //刪除tar暫存檔
             delFile = new QFile(temp);
             delFile->remove();
             break;
-        case 4: //bcm
-            if(ui->paq_precomp->isChecked()){ //預處理 *.pre.0
-                temp += "pre";
-                cmd = pxd_old + " -q0" + " \"" + temp + "\" \"" + inpath + "\"";
-                temp += ".0";
-                runCmdForCompOrDecomp(cmd); //開始執行預處理
-                ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-                outpath = temp;
-                outpath.chop(1);
-                outpath += "bcm";
-                //等待預處理完成才繼續執行後續壓縮
-                while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
-                ui->paq_cmdOutput->clear(); //清除命令執行進度
+        case 3: //bcm
+            if(!isArchive_BCM(outpath)) {
+                QMessageBox* msg;
+                msg = new QMessageBox(QMessageBox::Critical,QStringLiteral("錯誤！"), QStringLiteral("輸出檔案的副檔名請選擇bcm (*.bcm)"));
+                msg->exec();
+                break;
             }
-            else { //歸檔 *.tar
-                temp += "tar";
-                cmd = sz + " a -ttar -mx0 -sccUTF-8 -bb0 \"-w" + deleteFileName(inpath) + "\" \"" + temp + "\" \"" + inpath + "\"";
-                runCmdForCompOrDecomp(cmd); //開始執行歸檔
-                ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
-                outpath = temp;
-                outpath.chop(3);
-                outpath += "bcm";
-                //等待歸檔完成才繼續執行後續壓縮
-                while(!ui->sz_cmdOutput->toPlainText().contains(QStringLiteral("Everything"))) delay_1ms();
-                ui->sz_cmdOutput->clear(); //清除命令執行進度
-            }
+            else outpath.chop(3); //先刪除副檔名
+            temp = outpath; //這時outpath的格式為 [X:\demo\file.]
 
-            //預處理 = *.pre.bcm , 歸檔 = *.bcm
+            //歸檔 *.tar
+            temp += "tar";
+            cmd = sz + " a -ttar -mx0 -sccUTF-8 -bb0 \"-w" + deleteFileName(inpath) + "\" \"" + temp + "\" \"" + inpath + "\"";
+            runCmdForCompOrDecomp(cmd); //開始執行歸檔
+            //等待歸檔完成才繼續執行後續壓縮
+            while(!ui->sz_cmdOutput->toPlainText().contains(QStringLiteral("Everything"))) delay_1ms();
+            ui->sz_cmdOutput->clear(); //清除命令執行進度
+
+            outpath = temp;
+            outpath.chop(3);
+            outpath += "bcm";
             cmd = bcm + " -b" + compLv + " -f" + " \"" + temp + "\" \"" + outpath + "\"";
 
             runCmdForCompOrDecomp(cmd); //開始執行
+            ui->tab_paq->setCurrentIndex(2); //跳到命令執行進度畫面
             //等待壓縮完成才取得檔案大小
             while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("耗時"))) delay_1ms();
             ui->statusBar->showMessage(QStringLiteral("壓縮成功！大小變化(Bytes)：%1 → %2，"
-                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg(float(Getfilesize(outpath)*100)/float(Getfilesize(inpath))));
-            //刪除預處理或歸檔的暫存檔
+                                                      "壓縮率：%3%").arg(Getfilesize(inpath)).arg(Getfilesize(outpath)).arg((Getfilesize(outpath)*100)/Getfilesize(inpath)));
+            //刪除tar暫存檔
             delFile = new QFile(temp);
             delFile->remove();
+            break;
+        case 4: //kanzi
+            if(!isArchive_Kanzi(outpath)) {
+                QMessageBox* msg;
+                msg = new QMessageBox(QMessageBox::Critical,QStringLiteral("錯誤！"), QStringLiteral("輸出檔案的副檔名請選擇kanzi (*.knz)"));
+                msg->exec();
+                break;
+            }
+            else outpath.chop(3); //先刪除副檔名
+
             break;
         }
     }
 }
-void MainWindow::on_paq_tool_currentIndexChanged(int index) //各工具專用設定配置
+void MainWindow::on_others_tool_currentIndexChanged(int index) //各工具專用設定配置
 {
     switch (index) {
-    case 0://pxd_old
-        ui->paq_compSpeed->setEnabled(true);
+    case 0://pxd
         ui->paq_threads->setEnabled(true);
         ui->paq_compLv->setEnabled(true);
         ui->paq_dic->setEnabled(false);
@@ -2099,39 +1731,12 @@ void MainWindow::on_paq_tool_currentIndexChanged(int index) //各工具專用設
         ui->px_switch_b->setEnabled(false);
         ui->px_switch_e->setEnabled(false);
         ui->px_switch_s->setEnabled(false);
-        ui->paq_precomp->setEnabled(false);
-        ui->paq_compRunCmd->setEnabled(true);
-
-        ui->paq_compSpeed->clear();
-        ui->paq_compSpeed->insertItem(0,QStringLiteral("較快"));
-        ui->paq_compSpeed->insertItem(1,QStringLiteral("一般"));
-        ui->paq_compSpeed->insertItem(2,QStringLiteral("非常慢"));
 
         ui->paq_compLv->setMinimum(0);
         ui->paq_compLv->setMaximum(15);
-        ui->paq_compLv->setValue(0);
+        ui->paq_compLv->setValue(1);
         break;
-    case 1://pxd_new
-        ui->paq_compSpeed->setEnabled(false);
-        ui->paq_threads->setEnabled(true);
-        ui->paq_compLv->setEnabled(true);
-        ui->paq_dic->setEnabled(false);
-        ui->px_switch_a->setEnabled(false);
-        ui->px_switch_b->setEnabled(false);
-        ui->px_switch_e->setEnabled(false);
-        ui->px_switch_s->setEnabled(false);
-        ui->paq_precomp->setEnabled(false);
-        ui->paq_compRunCmd->setEnabled(true);
-
-        ui->paq_compSpeed->clear();
-        ui->paq_compSpeed->insertItem(0,QStringLiteral("非常慢"));
-
-        ui->paq_compLv->setMinimum(0);
-        ui->paq_compLv->setMaximum(15);
-        ui->paq_compLv->setValue(0);
-        break;
-    case 2://px
-        ui->paq_compSpeed->setEnabled(false);
+    case 1://px
         ui->paq_threads->setEnabled(false);
         ui->paq_compLv->setEnabled(true);
         ui->paq_dic->setEnabled(true);
@@ -2139,18 +1744,12 @@ void MainWindow::on_paq_tool_currentIndexChanged(int index) //各工具專用設
         ui->px_switch_b->setEnabled(true);
         ui->px_switch_e->setEnabled(true);
         ui->px_switch_s->setEnabled(true);
-        ui->paq_precomp->setEnabled(false);
-        ui->paq_compRunCmd->setEnabled(true);
-
-        ui->paq_compSpeed->clear();
-        ui->paq_compSpeed->insertItem(0,QStringLiteral("預設"));
 
         ui->paq_compLv->setMinimum(0);
         ui->paq_compLv->setMaximum(9);
-        ui->paq_compLv->setValue(0);
+        ui->paq_compLv->setValue(1);
         break;
-    case 3://cmix
-        ui->paq_compSpeed->setEnabled(false);
+    case 2://cmix
         ui->paq_threads->setEnabled(false);
         ui->paq_compLv->setEnabled(false);
         ui->paq_dic->setEnabled(true);
@@ -2158,18 +1757,12 @@ void MainWindow::on_paq_tool_currentIndexChanged(int index) //各工具專用設
         ui->px_switch_b->setEnabled(false);
         ui->px_switch_e->setEnabled(false);
         ui->px_switch_s->setEnabled(false);
-        ui->paq_precomp->setEnabled(true);
-        ui->paq_compRunCmd->setEnabled(true);
-
-        ui->paq_compSpeed->clear();
-        ui->paq_compSpeed->insertItem(0,QStringLiteral("極慢"));
 
         ui->paq_compLv->setMinimum(999);
         ui->paq_compLv->setMaximum(999);
         ui->paq_compLv->setValue(999);
         break;
-    case 4://bcm
-        ui->paq_compSpeed->setEnabled(false);
+    case 3://bcm
         ui->paq_threads->setEnabled(false);
         ui->paq_compLv->setEnabled(true);
         ui->paq_dic->setEnabled(false);
@@ -2177,22 +1770,31 @@ void MainWindow::on_paq_tool_currentIndexChanged(int index) //各工具專用設
         ui->px_switch_b->setEnabled(false);
         ui->px_switch_e->setEnabled(false);
         ui->px_switch_s->setEnabled(false);
-        ui->paq_precomp->setEnabled(true);
-        ui->paq_compRunCmd->setEnabled(true);
-
-        ui->paq_compSpeed->clear();
-        ui->paq_compSpeed->insertItem(0,QStringLiteral("預設"));
 
         ui->paq_compLv->setMinimum(1);
         ui->paq_compLv->setMaximum(2047);
         ui->paq_compLv->setValue(1);
+        break;
+    case 4://kanzi
+        ui->paq_threads->setEnabled(true);
+        ui->paq_compLv->setEnabled(true);
+        ui->paq_dic->setEnabled(false);
+        ui->px_switch_a->setEnabled(false);
+        ui->px_switch_b->setEnabled(false);
+        ui->px_switch_e->setEnabled(false);
+        ui->px_switch_s->setEnabled(false);
+
+        ui->paq_compLv->setMinimum(0);
+        ui->paq_compLv->setMaximum(8);
+        ui->paq_compLv->setValue(1);
+
         break;
     }
 }
 //壓縮設定
 
 //解壓設定
-void MainWindow::on_unpaq_1click_clicked() //解壓縮至當前資料夾
+void MainWindow::on_decomp_1click_clicked() //解壓縮至當前資料夾
 {
     ui->statusBar->clearMessage(); //清除statusBar
     ui->paq_cmdOutput->clear(); //清除命令執行進度
@@ -2200,13 +1802,6 @@ void MainWindow::on_unpaq_1click_clicked() //解壓縮至當前資料夾
     if(ui->lineEdit->text() == QStringLiteral("可直接拖曳檔案或資料夾至此")) {
         QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇欲解壓縮的檔案！"));
         msg->exec();
-    }
-    else if(isArchive_PAQ(inpath)){
-        cmd = pxd_old + " -d \"" + inpath + "\"";
-        runCmdForCompOrDecomp(cmd);
-        //等待執行完成才顯示訊息
-        while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
-        ui->statusBar->showMessage(QStringLiteral("指令執行完畢！"));
     }
     else if(isArchive_pxd2(inpath)){
         cmd = pxd_new + " -d \"" + inpath + "\"";
@@ -2228,13 +1823,7 @@ void MainWindow::on_unpaq_1click_clicked() //解壓縮至當前資料夾
     else if(isArchive_dic_cmix(inpath)){
 
     }
-    else if(isArchive_pre_dic_cmix(inpath)){
-
-    }
     else if(isArchive_BCM(inpath)){
-
-    }
-    else if(isArchive_pre_BCM(inpath)){
 
     }
     else {
@@ -2242,32 +1831,35 @@ void MainWindow::on_unpaq_1click_clicked() //解壓縮至當前資料夾
         msg->exec();
     }
 }
-void MainWindow::on_unpaq_btn_clicked() //解壓縮至指定資料夾
+void MainWindow::on_decomp_btn_clicked() //解壓縮至指定資料夾
 {
-    int tool = ui->unpaq_tool->currentIndex();
+    int tool = ui->decomp_tool->currentIndex();
     ui->statusBar->clearMessage(); //清除statusBar
     ui->paq_cmdOutput->clear(); //清除命令執行進度
     QString cmd;
-    if(tool == 0){ //pxd_old
-        cmd = pxd_old + " -d \"" + inpath + "\"";
-    }
-    else if(tool == 1){ //pxd_new
+    switch (tool) {
+    case 0: //pxd
         cmd = pxd_new + " -d \"" + inpath + "\"";
-    }
-    else if(tool == 2){ //px
+        break;
+    case 1: //px
         cmd = px + " -d \"" + inpath + "\"";
-    }
-    else if(tool == 3){ //cmix
-
-    }
-    else if(tool == 4){ //bcm
-
+        break;
+    case 2: //cmix
+        cmd = cmix + " -d \"" + inpath + "\"";
+        break;
+    case 3: //bcm
+        cmd = bcm + " -d \"" + inpath + "\"";
+        break;
+    case 4: //kanzi
+        cmd = kanzi + " -d -i  \"" + inpath + "\"";
+        break;
     }
     if(ui->lineEdit->text() == QStringLiteral("可直接拖曳檔案或資料夾至此")) {
         QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇欲解壓縮的檔案！"));
         msg->exec();
     }
     else if(ui->lineEdit_2->text() == QStringLiteral("選擇輸出位置")) {
+        /*
         if(!isArchive_PAQ(inpath)){
             QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇正確的壓縮檔！"));
             msg->exec();
@@ -2288,8 +1880,10 @@ void MainWindow::on_unpaq_btn_clicked() //解壓縮至指定資料夾
             }
             else if(msg->clickedButton() == no){}
         }
+        */
     }
     else {
+        /*
         if(!isArchive_PAQ(inpath)){
             QMessageBox *msg = new QMessageBox(QMessageBox::Warning,QStringLiteral("錯誤"),QStringLiteral("請選擇正確的壓縮檔！"));
             msg->exec();
@@ -2301,37 +1895,31 @@ void MainWindow::on_unpaq_btn_clicked() //解壓縮至指定資料夾
             while(!ui->paq_cmdOutput->toPlainText().contains(QStringLiteral("共花費"))) delay_1ms();
             ui->statusBar->showMessage(QStringLiteral("指令執行完畢！"));
         }
+        */
     }
 }
-void MainWindow::on_unpaq_viewbtn_clicked() //查看壓縮檔內容
+void MainWindow::on_other_viewbtn_clicked() //查看壓縮檔內容
 {
     ui->paq_viewFileList->clear();
     //QString line;
-    if(isArchive_PAQ(inpath)) {
-        runCmdForCompOrDecomp(pxd_old + " -l \"" + inpath + "\"");
-    }
-    else if(isArchive_pxd2(inpath)) {
-        runCmdForCompOrDecomp(pxd_new + " -l \"" + inpath + "\"");
-    }
-    else if(isArchive_PX(inpath)) {
-        runCmdForCompOrDecomp(px + " -l \"" + inpath + "\"");
-    }
+    if(isArchive_pxd2(inpath)) runCmdForCompOrDecomp(pxd_new + " -l \"" + inpath + "\"");
+    else if(isArchive_PX(inpath)) runCmdForCompOrDecomp(px + " -l \"" + inpath + "\"");
     else ui->paq_viewFileList->setPlainText(QStringLiteral("必須為支援的壓縮檔格式且檔案標頭符合才能查看"));
 }
 //解壓設定
 
-//設定提醒通知
-void MainWindow::on_paq_threads_currentIndexChanged(int index) //多執行緒功能
-{
-    if(TipMsg && TempMsg2 && index>=0){ //index>=0是無意義的，防止編譯提醒
-        QMessageBox *msg = new QMessageBox(QMessageBox::Information,QStringLiteral("訊息"),
-                                           QStringLiteral("目前多執行緒功能是不完善的，詳情如下：\n"
-                                                          "1.不會改變壓縮率\n2.佔用更多的系統記憶體\n3.不一定會改善壓縮時間")); msg->exec();
-        TempMsg2 = false;
-    }
-}
-//設定提醒通知
 
-//------------------------------實驗工具---------------------------//
+//------------------------------其他工具---------------------------//
+
+
+
+
+
+
+
+
+
+
+
 
 

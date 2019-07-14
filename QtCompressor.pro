@@ -26,18 +26,15 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp \
-    dialog1.cpp
+        mainwindow.cpp
 
 HEADERS += \
         mainwindow.h \
-    dialog1.h \
     filedl.h \
     ui_mainwindow.h
 
 FORMS += \
-        mainwindow.ui \
-    dialog1.ui
+        mainwindow.ui
 
 RESOURCES += resource.qrc
 
@@ -45,7 +42,3 @@ win32 {
     CONFIG -= embed_manifest_exe
     RC_FILE = admin_icon.rc
 }
-
-*msvc* { # visual studio spec filter
-      QMAKE_CXXFLAGS += -MP
-  }

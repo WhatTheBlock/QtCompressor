@@ -1,4 +1,4 @@
-#ifndef MAINWINDOW_H
+﻿#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include "filedl.h"
@@ -47,15 +47,11 @@ private slots:
 
     void on_pushButton_4_clicked();
 
-    void on_pushButton_5_clicked();
-
     void on_pushButton_6_clicked();
 
     void on_rar_setpwd_btn_clicked();
 
     void on_rar_rb_pressed();
-
-    void on_rar_zip_rb_pressed();
 
     void on_rar5_rb_pressed();
 
@@ -64,12 +60,6 @@ private slots:
     void on_rar_splitnum_valueChanged(int arg1);
 
     void on_rar_dictsize_currentIndexChanged(int index);
-
-    void on_rar_1click_clicked();
-
-    void on_rar5_1click_clicked();
-
-    void on_winrar_zip_1click_clicked();
 
     void on_rar_other_dw_clicked();
 
@@ -107,31 +97,27 @@ private slots:
 
     void on_checkUpdate_triggered();
 
-    void on_paq_threads_currentIndexChanged(int index);
-
     void on_lineEdit_2_textChanged(const QString &arg1);
 
     void on_paq_compRunCmd_clicked();
 
-    void on_unpaq_1click_clicked();
+    void on_decomp_1click_clicked();
 
-    void on_unpaq_btn_clicked();
+    void on_decomp_btn_clicked();
 
     void RealTimeReadOut();
 
     void on_tab_winrar_currentChanged(int index);
 
-    void on_unpaq_viewbtn_clicked();
+    void on_other_viewbtn_clicked();
 
     void on_tab_paq_currentChanged(int index);
 
     void on_tab_7z_currentChanged(int index);
 
-    void on_tab_uharc_currentChanged(int index);
-
     void loadFile();
 
-    void on_paq_tool_currentIndexChanged(int index);
+    void on_others_tool_currentIndexChanged(int index);
 
     void updateFreeRAM();
 
@@ -148,7 +134,7 @@ private:
 
     int rar_dictsize_indexbak;
 
-    bool useRAR, use7Z, useUHA, useUPX, usePAQ;
+    bool useRAR, use7Z, useUPX, usePAQ;
 
     bool findString;
 
@@ -173,16 +159,14 @@ private:
 
     //plugins
     QString rar = "C:\\Windows\\Temp\\rar.exe";
-    QString winrar = "C:\\Windows\\Temp\\winrar.exe";
     QString sz = "C:\\Windows\\Temp\\7z.exe";
     QString upx = "C:\\Windows\\Temp\\upx.exe";
-    QString uharc = "C:\\Windows\\Temp\\uharc.exe";
-    QString pxd_old = "C:\\Windows\\Temp\\pxd_old.exe";
     QString pxd_new = "C:\\Windows\\Temp\\pxd.exe";
     QString px = "C:\\Windows\\Temp\\px.exe";
     QString cmix = "C:\\Windows\\Temp\\cmix.exe";
     QString dic = "C:\\Windows\\Temp\\english.dic";
     QString bcm = "C:\\Windows\\Temp\\bcm.exe";
+    QString kanzi = "C:\\Windows\\Temp\\kkanzi.exe";
     //plugins
 
     //壓縮檔資訊翻譯
