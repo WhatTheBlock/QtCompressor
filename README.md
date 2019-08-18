@@ -1,5 +1,7 @@
 # QtCompressor
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/94100e791d454c8790619a5e191a38a8)](https://www.codacy.com/app/WhatTheBlock/QtCompressor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=WhatTheBlock/QtCompressor&amp;utm_campaign=Badge_Grade)
+
 ## 介紹
 
 #### 這是一個整合各壓縮工具命令行版本的UI程式
