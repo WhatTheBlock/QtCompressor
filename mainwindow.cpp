@@ -1033,9 +1033,10 @@ void MainWindow::on_unrar_btn_clicked() //解壓
 void MainWindow::on_unrar_viewbtn_clicked() //查看壓縮檔內容
 {
     QString line;
-    int delUseless = 0;
 
     if(isArchive_WinRAR(inpath) && isArchive_7Zip(inpath)){
+        int delUseless = 0;
+        
         //輸出檔案清單txt
         QString cmd = sz + " l \"" + inpath + "\" -bso1 >" + " C:\\Windows\\Temp\\list.txt";
         runCmd(cmd);
