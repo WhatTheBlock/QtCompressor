@@ -149,18 +149,14 @@ QString deleteFileName(QString path){ //刪除檔名，取得當前目錄路徑
     return path;
 }
 QString getFileExt(QString path){ //取得副檔名
-    int cnt=0;
     for(int i = path.length()-1; i > 2; i--){
-        ++cnt;
-        if(path[i] == ".") {return path.right(path.length()-i);}
+        if(path[i] == ".") return path.right(path.length()-i);
     }
     return "";
 }
 QString getFileName(QString path){ //取得檔名+副檔名
-    int cnt=0;
     for(int i = path.length()-1; i > 2; i--){
-        ++cnt;
-        if(path[i] == "\\") {return path.right(path.length()-i-1);}
+        if(path[i] == "\\") return path.right(path.length()-i-1);
     }
     return "";
 }
@@ -1326,9 +1322,10 @@ void MainWindow::on_rar_splitnum_valueChanged(int value) //警告分割檔設定
 void MainWindow::on_sz_viewbtn_clicked() //查看壓縮檔內容
 {
     QString line;
-    int delUseless = 0;
 
     if(isArchive_7Zip(inpath)){
+        int delUseless = 0;
+        
         //輸出檔案清單txt
         QString cmd = sz + " l \"" + inpath + "\" -bso1 >" + " C:\\Windows\\Temp\\list.txt";
         runCmd(cmd);
