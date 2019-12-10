@@ -17,6 +17,9 @@
 7. BCM
 8. Kanzi
 
+UI介面：
+----
+![ui.png](/ui.png)
 
 ## 編譯方式
 
